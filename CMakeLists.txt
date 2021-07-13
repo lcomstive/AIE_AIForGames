@@ -14,7 +14,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Add libraries
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/raylib)
-add_subdirectory(GameEngine)
+add_subdirectory(GameFramework)
 
 set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
 
@@ -22,11 +22,6 @@ set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
 add_subdirectory(Game)
 
 # Solution filters
-set_target_properties(GameEngine PROPERTIES FOLDER "Engine")
-set_target_properties(GamePhysics PROPERTIES FOLDER "Engine/Modules")
-set_target_properties(GameUtilities PROPERTIES FOLDER "Engine/Modules")
-set_target_properties(EntityComponentSystem PROPERTIES FOLDER "Engine/Modules")
-
 set_target_properties(glfw PROPERTIES FOLDER "Third Party")
 set_target_properties(raylib PROPERTIES FOLDER "Third Party")
 

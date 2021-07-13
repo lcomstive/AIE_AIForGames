@@ -2,7 +2,7 @@ project(Game)
 
 include_directories(
 	include # Local include directory
-	${CMAKE_SOURCE_DIR}/GameEngine/include
+	${CMAKE_SOURCE_DIR}/GameFramework/include
 	${THIRD_PARTY_DIR}/raygui/src
 )
 
@@ -28,4 +28,4 @@ add_custom_command(
 	${ASSET_OUTPUT_DIR}
 )
 
-target_link_libraries(${PROJECT_NAME} GameEngine)
+target_link_libraries(${PROJECT_NAME} GameFramework)

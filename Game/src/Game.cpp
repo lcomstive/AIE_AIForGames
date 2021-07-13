@@ -1,197 +1,92 @@
-#include <cstdlib> // rand()
 #include <Game.hpp>
-#include <Systems/AgentSystem.hpp>
-#include <Components/AgentComponent.hpp>
-#include <GameEngine/ResourceManager.hpp>
-#include <Components/TargetComponent.hpp>
-#include <GameEngine/CommonComponents.hpp>
-#include <GameEngine/Systems/PhysicsSystem.hpp>
-
-#define RAYGUI_IMPLEMENTATION
-#define RAYGUI_SUPPORT_ICONS
-#pragma warning(push, 0) // Disable warnings from raylib & raygui
+#include <string>
 #include <raylib.h>
-#include <raygui.h> // Immediate-mode GUI
-#pragma warning(pop)
+#include <Framework/BehaviourTrees/BehaviourTreeNodes.hpp>
 
-using namespace ECS;
-using namespace Utilities;
+using namespace std;
+using namespace Framework;
+using namespace Framework::BT;
 
-const float BirbSize = 75;	// Scale
-const string BirbSpriteSheet = "assets/Sprites/Birbs.png";
-int BirbSpriteIndex = 1;
-
-const float TargetSize = 50;	// Scale
-const string TargetSpriteSheet = "assets/Sprites/Foods.png";
-
-Game::Game(const ApplicationArgs& args) : Application(args)
+Game::Game()
 {
-	auto physicsSystem = GetWorld()->GetSystem<PhysicsSystem>();
-	physicsSystem->SetGravity(Vector2{ 0, 0 });
-
+	InitWindow(800, 600, "Game");
+	SetWindowState(FLAG_WINDOW_RESIZABLE);
 	SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
 
-#ifndef NDEBUG
-	physicsSystem->DrawDebugInfo = true;
-#endif
+	m_Root = new GameObject("Root");
 
-	GetWorld()->AddSystem<AgentSystem>();
-
-	// --- INPUT --- //
-	InputSystem* input = GetInput();
-	input->Map(KEY_ESCAPE, "KeyQuit", [&](DataStream) { Quit(); });
-
-	// Pre-load assets on main thread
-	PreloadAssets();
-
-	input->Map(MOUSE_BUTTON_LEFT, "SpawnTarget", [&](const DataStream&) { CreateTarget(GetMousePosition()); }, InputBindingState::Down);
-
-	CreateBirbs(10);
-
-	GAME_LOG_DEBUG("Total entity count: " + to_string(GetWorld()->GetEntityCount()));
-}
-
-void Game::OnUpdate(float deltaTime)
-{
-	SetWindowTitle(("Game [entities: " + to_string(GetWorld()->GetEntityCount()) + "][DeltaTime: " + to_string(GetFrameTime()) + "]").c_str());
-}
-
-void Game::OnDrawGUI()
-{
-
-}
-
-static unsigned int RandomIncrement = 0;
-void Game::CreateTarget(Vector2 position)
-{
-	Entity target = GetWorld()->CreateEntity();
-	target.AddComponent<TargetComponent>();
-
-	auto transform = target.AddComponent<TransformComponent>();
-	transform->Position = position;
-	transform->Scale = { TargetSize, TargetSize};
-
-	auto sprite = target.AddComponent<SpriteComponent>();
-	sprite->Sprite = ResourceManager::LoadTexture(TargetSpriteSheet);
-
-	const float TargetWidth = 64;
-	const unsigned int TargetSprites = 37;
-	const unsigned int TargetSpriteSheetWidth = 512;
-	unsigned int randomSprite = rand() % TargetSprites;
-	srand(RandomIncrement++);
-	sprite->ReferenceSize =
+	Texture t = LoadTexture("./assets/Sprites/Foods.png");
+	for (float i = -10; i < 10; i++)
 	{
-		randomSprite * TargetWidth,  // x offset
-		0,  // y offset
-		TargetWidth, // width
-		TargetWidth  // height
+		for (float j = -10; j < 10; j++)
+		{
+			AnimatedSprite* sprite = new AnimatedSprite(t);
+			sprite->SetSize(Vector2{ 100, 100 });
+			sprite->View.width = sprite->View.height = 64;
+			sprite->MaxFrames = 37;
+			sprite->SetTimeBetweenFrames(0.5f);
+
+			sprite->SetPosition({ i * 80, j * 80 });
+
+			sprite->Frame = (unsigned int)(i + j);
+
+			m_Root->AddChild(sprite);
+		}
+	}
+
+	m_Camera = Camera2D();
+	m_Camera.zoom = 1.0f;
+	m_Camera.target = { 0, 0 };
+
+	auto repeat = m_BehaviourTree.Add<RepeatCount>();
+	repeat->Repetitions = 10;
+	auto log = repeat->SetChild<DynamicLogDecorator>();
+	log->MessageGenerator = [](GameObject* go, DynamicLogDecorator* caller)
+	{
+		return "Test message [" + to_string(caller->GetContext<unsigned int>("RepeatCount")) + "] '" + go->GetName() + "'";
 	};
 
-	auto physics = target.AddComponent<PhysicsBodyComponent>();
-	physics->Trigger = true;
-	physics->Static = true;
-
-	m_Targets.push_back(target);
-
-	EntityID targetID = target.ID;
-	Events()->AddReceiver("PhysicsTrigger", [=](DataStream stream)
-	{
-		if (stream.read<EntityID>() != GetWorld()->ID())
-			return; // Not for us?
-
-		EntityID a = stream.read<EntityID>();
-		EntityID b = stream.read<EntityID>();
-
-		if (a == targetID)
-			GetWorld()->DestroyEntity(targetID);
-		if (b == targetID)			  
-			GetWorld()->DestroyEntity(targetID);
-
-		/* PLAY AUDIO WHEN TARGET DESTROYED
-
-		AudioComponent* audio = nullptr;
-		if (a == m_Player) audio = GetWorld()->AddComponent<AudioComponent>(b);
-		else audio = GetWorld()->AddComponent<AudioComponent>(a);
-
-		if (audio->Sound != InvalidResourceID)
-			return; // Already has audio component
-
-		audio->Sound = ObstacleHitSoundID;
-		audio->EndAction = AudioEndAction::Remove;
-		*/
-	});
+	m_BehaviourTree.Update(m_Root);
 }
 
-void Game::CreateBirbs(unsigned int count)
+Game::~Game()
 {
-	const float ScreenPadding = 150.0f;
-	Vector2 resolution = GetResolution();
-	srand(time(0) + (RandomIncrement * RandomIncrement++));
-	for (unsigned int i = 0; i < count; i++)
+	CloseWindow();
+	delete m_Root;
+}
+
+void Game::Run()
+{
+	while (!WindowShouldClose())
 	{
-		Entity birb = GetWorld()->CreateEntity();
+		m_Camera.offset = { GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
+		BeginDrawing();
+		BeginMode2D(m_Camera);
+		ClearBackground(Color { 10, 10, 10, 255 });
 
-		auto transform = birb.AddComponent<TransformComponent>();
-		transform->Position =
-		{
-			ScreenPadding + (rand() % (int)resolution.x - ScreenPadding),
-			ScreenPadding + (rand() % (int)resolution.y - ScreenPadding)
-		};
-		transform->Scale = { BirbSize, BirbSize };
+		Update();
 
-		const float SpriteWidth = 48;
-		const unsigned int SpritesPerLine = 12;
-		const vector<unsigned int> BirbBeginFrames =
-		{
-			0,  // Light brown
-			3,  // Brown
-			6,  // Red,
-			9,  // Yellow
-			48, // White
-			51, // Lime
-			54, // Blue
-			57, // Grey
-		};
+		m_Root->Update();
+		m_Root->Draw();
 
-		auto sprite = birb.AddComponent<AnimatedSpriteComponent>();
-		sprite->Sprite = ResourceManager::LoadTexture(BirbSpriteSheet);
-		sprite->TimeBetweenFrames = 150;
-		sprite->MaxFrames = 3;
+#ifndef NDEBUG
+		DrawFPS(10, 10);
+#endif
 
-		unsigned int selectedBirb = rand() % BirbBeginFrames.size();
-		sprite->Frame = BirbBeginFrames[selectedBirb];
-		sprite->ReferenceSize =
-		{
-			0,  // x
-			0,  // y
-			SpriteWidth, // Width
-			SpriteWidth  // Height
-		};
-
-		birb.AddComponent<AgentComponent>();
-		birb.AddComponent<PhysicsBodyComponent>();
-
-		m_Birbs.push_back(birb);
+		EndMode2D();
+		EndDrawing();
 	}
 }
 
-void Game::CreateRandomTargets(unsigned int count)
+void Game::Update()
 {
-	const float ScreenPadding = 50.0f;
-	Vector2 resolution = GetResolution();
-	srand(time(0) + (RandomIncrement * RandomIncrement++));
-	for (unsigned int i = 0; i < count; i++)
-	{
-		CreateTarget(
-			{
-				ScreenPadding + (rand() % (int)resolution.x - ScreenPadding),
-				ScreenPadding + (rand() % (int)resolution.y - ScreenPadding)
-			});
-	}
+	auto children = m_Root->GetChildren();
+	for (auto child : children)
+		child->SetRotation(child->GetRotation() + 1.0f);
 }
 
-void Game::PreloadAssets()
+void main()
 {
-	ResourceManager::LoadTexture(BirbSpriteSheet);
-	ResourceManager::LoadTexture(TargetSpriteSheet);
+	Game game;
+	game.Run();
 }
