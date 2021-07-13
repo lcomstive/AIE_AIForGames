@@ -13,6 +13,7 @@ namespace Framework::BT
 {
 	class Composite;
 	class Decorator;
+	class Evaluator;
 
 	enum class BehaviourResult { Success, Failure, Pending };
 
@@ -20,13 +21,15 @@ namespace Framework::BT
 	{
 		friend Composite;
 		friend Decorator;
+		friend Evaluator;
 		friend BehaviourTree;
 
 		std::unordered_map<std::string, void*>* m_Context;
 	public:
-		BehaviourNode() = default;
+		BehaviourNode() : m_Context() {}
 		~BehaviourNode() = default;
 
+		virtual std::string GetName() { return "Node"; }
 		virtual BehaviourResult Execute(GameObject* go) = 0;
 
 		void ClearContext();
@@ -54,6 +57,8 @@ namespace Framework::BT
 		std::unique_ptr<BehaviourNode> m_True;
 		std::unique_ptr<BehaviourNode> m_False;
 
+		friend BehaviourTree;
+
 	public:
 		std::function<bool(GameObject* go, Evaluator* caller)> Function;
 
@@ -70,12 +75,15 @@ namespace Framework::BT
 				m_Child = &m_False;
 
 			if (m_Child)
-				m_Child.release();
+				m_Child->release();
 
-			m_Child.swap(new T());
-			m_Child->m_Context = m_Context;
-			return m_Child.get();
+			m_Child->reset(new T());
+			m_Child->get()->m_Context = m_Context;
+			return (T*)m_Child->get();
 		}
+
+		virtual BehaviourResult Execute(GameObject* go) override;
+		virtual std::string GetName() override { return "Evaluator"; }
 	};
 
 	// Abstract node class with many children behaviours
@@ -98,12 +106,13 @@ namespace Framework::BT
 			assert(isBehaviourType);
 
 			m_Children.emplace_back(new T());
-			T* child = m_Children[m_Children.size() - 1];
+			T* child = (T*)m_Children[m_Children.size() - 1];
 			((BehaviourNode*)child)->m_Context = m_Context;
 			return child;
 		}
 
 		virtual BehaviourResult Execute(GameObject* go) = 0;
+		virtual std::string GetName() override { return "Composite"; }
 	};
 
 	// AND node (runs child behaviours until one fails)
@@ -111,6 +120,15 @@ namespace Framework::BT
 	{
 	public:
 		virtual BehaviourResult Execute(GameObject* go) override;
+		virtual std::string GetName() override { return "Sequence"; }
+	};
+
+	// Random AND node (runs random child behaviours until one fails)
+	class RandomSequence : public Composite
+	{
+	public:
+		virtual BehaviourResult Execute(GameObject* go) override;
+		virtual std::string GetName() override { return "RandomSequence"; }
 	};
 	
 	// OR node (runs child behaviours until one succeeds)
@@ -118,6 +136,15 @@ namespace Framework::BT
 	{
 	public:
 		virtual BehaviourResult Execute(GameObject* go) override;
+		virtual std::string GetName() override { return "Selector"; }
+	};
+
+	// Random OR node (runs random child behaviours until one succeeds)
+	class RandomSelector : public Composite
+	{
+	public:
+		virtual BehaviourResult Execute(GameObject* go) override;
+		virtual std::string GetName() override { return "RandomSelector"; }
 	};
 
 	/// --- DECORATORS --- ///
@@ -144,6 +171,7 @@ namespace Framework::BT
 		}
 
 		virtual BehaviourResult Execute(GameObject* go) = 0;
+		virtual std::string GetName() override { return "Decorator"; }
 	};
 
 	// Inverts result of single child node
@@ -151,6 +179,7 @@ namespace Framework::BT
 	{
 	public:
 		virtual BehaviourResult Execute(GameObject* go) override;
+		virtual std::string GetName() override { return "Inverse"; }
 	};
 
 	// Prints message when executed, useful for debugging
@@ -160,15 +189,17 @@ namespace Framework::BT
 		std::string Message;
 
 		virtual BehaviourResult Execute(GameObject* go) override;
+		virtual std::string GetName() override { return "Log"; }
 	};
 	
 	// Prints message when executed, useful for debugging
 	class DynamicLogDecorator : public Decorator
 	{
 	public:
-		std::function<std::string(GameObject* go, DynamicLogDecorator* caller)> MessageGenerator;
+		std::function<std::string(GameObject* go, DynamicLogDecorator* caller)> Message;
 
 		virtual BehaviourResult Execute(GameObject* go) override;
+		virtual std::string GetName() override { return "DynamicLog"; }
 	};
 
 	// Always successful result
@@ -176,6 +207,17 @@ namespace Framework::BT
 	{
 	public:
 		virtual BehaviourResult Execute(GameObject* go) override;
+		virtual std::string GetName() override { return "Succeeder"; }
+	};
+
+	// Repeats execution until condition is false (while loop)
+	class Repeat : public Decorator
+	{
+	public:
+		std::function<bool(GameObject* go, Repeat* caller)> Condition;
+
+		virtual BehaviourResult Execute(GameObject* go) override;
+		virtual std::string GetName() override { return "Repeat"; }
 	};
 
 	// Repeats execution of child until count is reached
@@ -185,6 +227,7 @@ namespace Framework::BT
 		unsigned int Repetitions = 1;
 
 		virtual BehaviourResult Execute(GameObject* go) override;
+		virtual std::string GetName() override { return "RepeatCount"; }
 	};
 
 	// Repeats execution of child until failure is returned from execution, then returns success
@@ -192,5 +235,6 @@ namespace Framework::BT
 	{
 	public:
 		virtual BehaviourResult Execute(GameObject* go) override;
+		virtual std::string GetName() override { return "RepeatUntilFail"; }
 	};
 }

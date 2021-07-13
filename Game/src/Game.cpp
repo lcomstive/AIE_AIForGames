@@ -38,15 +38,26 @@ Game::Game()
 	m_Camera.zoom = 1.0f;
 	m_Camera.target = { 0, 0 };
 
-	auto repeat = m_BehaviourTree.Add<RepeatCount>();
-	repeat->Repetitions = 10;
-	auto log = repeat->SetChild<DynamicLogDecorator>();
-	log->MessageGenerator = [](GameObject* go, DynamicLogDecorator* caller)
-	{
-		return "Test message [" + to_string(caller->GetContext<unsigned int>("RepeatCount")) + "] '" + go->GetName() + "'";
-	};
+	/// TEST BEHAVIOUR TREE ///
+	auto sequence = m_BehaviourTree.Add<RandomSequence>();
 
-	m_BehaviourTree.Update(m_Root);
+	auto eval = sequence->AddChild<Evaluator>();
+	eval->Function = [](GameObject* go, Evaluator* caller) { return caller->GetContext<unsigned int>("SequenceIndex") > 5; };
+	auto dynamicLog = eval->SetResult<DynamicLogDecorator>(true);
+	dynamicLog->Message = [](GameObject* go, DynamicLogDecorator* caller) { return "Evaluated true!"; };
+	dynamicLog->SetChild<Succeeder>();
+	dynamicLog = eval->SetResult<DynamicLogDecorator>(false);
+	dynamicLog->Message = [](GameObject* go, DynamicLogDecorator* caller) { return "Evaluated false!"; };
+	dynamicLog->SetChild<Succeeder>();
+
+	for (int i = 0; i < 10; i++)
+	{
+		auto log = sequence->AddChild<DynamicLogDecorator>();
+		log->Message = [=](GameObject* go, DynamicLogDecorator* caller) { return "Test message [" + to_string(i) + "]"; };
+		log->SetChild<Succeeder>();
+	}
+
+	m_BehaviourTree.Update(m_Root); // Should be called every Update instead
 }
 
 Game::~Game()

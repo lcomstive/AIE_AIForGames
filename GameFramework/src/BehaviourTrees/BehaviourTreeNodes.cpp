@@ -16,6 +16,17 @@ void BehaviourNode::SetContext(string name, void* data)
 }
 bool BehaviourNode::ContextExists(string name) { return m_Context->find(name) != m_Context->end(); }
 
+/// --- EVALUATOR --- ///
+BehaviourResult Evaluator::Execute(GameObject* go)
+{
+	if (!go || !Function)
+		return BehaviourResult::Failure;
+	if (Function(go, this))
+		return m_True ? m_True->Execute(go) : BehaviourResult::Failure;
+	else
+		return m_False ? m_False->Execute(go) : BehaviourResult::Failure;
+}
+
 /// --- COMPOSITE --- ///
 Composite::~Composite()
 {
@@ -33,8 +44,10 @@ BehaviourResult Sequence::Execute(GameObject* go)
 		return BehaviourResult::Failure;
 	BehaviourNode* child = children[PendingChildIndex >= 0 ? PendingChildIndex : 0];
 
+	unsigned int sequenceIndex = 0;
 	while (child)
 	{
+		SetContext("SequenceIndex", sequenceIndex++);
 		auto result = child->Execute(go);
 		switch (result)
 		{
@@ -50,6 +63,36 @@ BehaviourResult Sequence::Execute(GameObject* go)
 	return BehaviourResult::Success;
 }
 
+BehaviourResult RandomSequence::Execute(GameObject* go)
+{
+	auto children = GetChildren();
+	if (!go || children.size() == 0)
+		return BehaviourResult::Failure;
+	if (PendingChildIndex < 0)
+		PendingChildIndex = rand() % children.size();
+	BehaviourNode* child = children[PendingChildIndex];
+
+	unsigned int sequenceIndex = 0;
+	while (child)
+	{
+		SetContext("SequenceIndex", sequenceIndex++);
+		auto result = child->Execute(go);
+		children.erase(children.begin() + PendingChildIndex);
+		switch (result)
+		{
+		case BehaviourResult::Failure:
+		case BehaviourResult::Pending: return result;
+		case BehaviourResult::Success:
+			if (children.size() == 0)
+				return result;
+			PendingChildIndex = rand() % children.size();
+			child = children[PendingChildIndex];
+			break;
+		}
+	}
+	return BehaviourResult::Success;
+}
+
 /// --- SELECTOR --- ///
 BehaviourResult Selector::Execute(GameObject* go)
 {
@@ -58,8 +101,10 @@ BehaviourResult Selector::Execute(GameObject* go)
 		return BehaviourResult::Failure;
 	BehaviourNode* child = children[PendingChildIndex >= 0 ? PendingChildIndex : 0];
 
+	unsigned int selectorIndex = 0;
 	while (child)
 	{
+		SetContext("SelectorIndex", selectorIndex++);
 		auto result = child->Execute(go);
 		switch (result)
 		{
@@ -69,6 +114,38 @@ BehaviourResult Selector::Execute(GameObject* go)
 			if (PendingChildIndex >= children.size() - 1)
 				return result;
 			child = children[++PendingChildIndex];
+			break;
+		}
+	}
+
+	return BehaviourResult::Failure;
+}
+
+BehaviourResult RandomSelector::Execute(GameObject* go)
+{
+	auto children = GetChildren();
+	if (!go || children.size() == 0)
+		return BehaviourResult::Failure;
+	if (PendingChildIndex < 0)
+		PendingChildIndex = rand() % children.size();
+	BehaviourNode* child = children[PendingChildIndex];
+	children.erase(children.begin() + PendingChildIndex);
+
+	unsigned int selectorIndex = 0;
+	while (child)
+	{
+		SetContext("SelectorIndex", selectorIndex++);
+		auto result = child->Execute(go);
+		children.erase(children.begin() + PendingChildIndex);
+		switch (result)
+		{
+		case BehaviourResult::Pending: return result;
+		case BehaviourResult::Success: PendingChildIndex = -1; return result;
+		case BehaviourResult::Failure:
+			if (children.size() == 0)
+				return result;
+			PendingChildIndex = rand() % children.size();
+			child = children[PendingChildIndex];
 			break;
 		}
 	}
@@ -106,8 +183,8 @@ BehaviourResult LogDecorator::Execute(GameObject* go)
 BehaviourResult DynamicLogDecorator::Execute(GameObject* go)
 {
 	auto child = GetChild();
-	if(MessageGenerator)
-		cout << "[Node] " << MessageGenerator(go, this) << endl;
+	if(Message)
+		cout << "[Node] " << Message(go, this) << endl;
 	return (go && child) ? child->Execute(go) : BehaviourResult::Failure;
 }
 
@@ -118,6 +195,24 @@ BehaviourResult Succeeder::Execute(GameObject* go)
 	if (go && child)
 		child->Execute(go);
 	return BehaviourResult::Success;
+}
+
+/// --- REPEAT --- ///
+BehaviourResult Repeat::Execute(GameObject* go)
+{
+	auto child = GetChild();
+	BehaviourResult result = BehaviourResult::Failure;
+	if (!go || !child || !Condition)
+		return result;
+
+	unsigned int repeats = 0;
+	SetContext("RepeatCount", repeats);
+	while (Condition(go, this))
+	{
+		result = child->Execute(go);
+		SetContext("RepeatCount", ++repeats);
+	}
+	return result;
 }
 
 /// --- REPEAT COUNT --- ///

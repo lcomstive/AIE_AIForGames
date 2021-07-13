@@ -10,6 +10,9 @@ namespace Framework
 	class BehaviourTree
 	{
 		std::vector<std::unique_ptr<BT::BehaviourNode>> m_Nodes;
+
+		void DrawNode(BT::BehaviourNode* node, unsigned int x, unsigned int y, float zoom);
+
 	public:
 		void Clear();
 		void Update(GameObject* gameObject);
@@ -22,8 +25,10 @@ namespace Framework
 
 			m_Nodes.emplace_back(std::make_unique<T>());
 			T* node = (T*)m_Nodes[m_Nodes.size() - 1].get();
-			((BehaviourNode*)node)->m_Context = new std::unordered_map<std::string, void*>();
+			((BT::BehaviourNode*)node)->m_Context = new std::unordered_map<std::string, void*>();
 			return node;
 		}
+
+		void Draw(unsigned int nodeIndex, unsigned int x, unsigned int y, float zoom = 1.0f);
 	};
 }
