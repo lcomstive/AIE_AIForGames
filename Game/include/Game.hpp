@@ -1,25 +1,43 @@
 #pragma once
 
-#include <Framework/Pathfinding/AStar.hpp>
 #include <Framework/GameObjects/AnimatedSprite.hpp>
-#include <Framework/Pathfinding/PathFindingGrid.hpp>
-#include <Framework/BehaviourTrees/BehaviourTree.hpp>
 
-#define ASTAR_GRID_HEXAGON
-#define ASTAR_GRID_TRIANGLE
+#define ASTAR_TEST
+// #define BTREE_TEST
+
+#ifdef ASTAR_TEST
+#include <Framework/Pathfinding/AStar.hpp>
+#include <Framework/Pathfinding/PathFindingGrid.hpp>
+
+// #define ASTAR_GRID_HEXAGON
+// #define ASTAR_GRID_TRIANGLE // UNTESTED
+#endif
+
+#ifdef BTREE_TEST
+#include <Framework/BehaviourTrees/BehaviourTree.hpp>
+#endif
 
 class Game
 {
+	const float MinZoom = 0.05f;
+	const float MaxZoom = 2.50f;
+	const float ZoomSpeed = 10.0f;
+
 	Camera2D m_Camera;
 	Framework::GameObject* m_Root;
 
+#ifdef BTREE_TEST
 	Framework::BehaviourTree m_BehaviourTree;
+#endif
 
-	const bool Diagonals = true;
-	const int GridWidth  = 180;
-	const int GridHeight = 130;
+#ifdef ASTAR_TEST
+	const int GridWidth  = 1000;
+	const int GridHeight = 1000;
+
+	const int CellSize = 50;
+	const int CellPadding = 0;
+
 	Framework::Pathfinding::AStar m_AStar;
-
 
 #if defined(ASTAR_GRID_HEXAGON)
 	Framework::Pathfinding::Grid<Framework::Pathfinding::HexGridNode>* m_AStarGrid;
@@ -27,6 +45,7 @@ class Game
 	Framework::Pathfinding::Grid<Framework::Pathfinding::TriangleGridNode>* m_AStarGrid;
 #else
 	Framework::Pathfinding::Grid<Framework::Pathfinding::SquareGridNode>* m_AStarGrid;
+#endif
 #endif
 
 public:

@@ -42,7 +42,9 @@ BehaviourResult Sequence::Execute(GameObject* go)
 	auto children = GetChildren();
 	if (!go || children.size() == 0)
 		return BehaviourResult::Failure;
-	BehaviourNode* child = children[PendingChildIndex >= 0 ? PendingChildIndex : 0];
+	if (PendingChildIndex < 0)
+		PendingChildIndex = 0;
+	BehaviourNode* child = children[PendingChildIndex];
 
 	unsigned int sequenceIndex = 0;
 	while (child)
@@ -54,12 +56,16 @@ BehaviourResult Sequence::Execute(GameObject* go)
 		case BehaviourResult::Failure:
 		case BehaviourResult::Pending: return result;
 		case BehaviourResult::Success:
-			if (PendingChildIndex >= children.size() - 1)
-				return result;
-			child = children[++PendingChildIndex];
+			if (++PendingChildIndex >= children.size())
+			{
+				child = nullptr;
+				break;
+			}
+			child = children[PendingChildIndex];
 			break;
 		}
 	}
+	PendingChildIndex = 0;
 	return BehaviourResult::Success;
 }
 
@@ -176,7 +182,7 @@ BehaviourResult LogDecorator::Execute(GameObject* go)
 {
 	auto child = GetChild();
 	cout << "[Node] " << Message << endl;
-	return (go && child) ? child->Execute(go) : BehaviourResult::Failure;
+	return (go && child) ? child->Execute(go) : BehaviourResult::Success;
 }
 
 /// --- DYNAMIC LOG DECORATOR --- ///
@@ -185,7 +191,7 @@ BehaviourResult DynamicLogDecorator::Execute(GameObject* go)
 	auto child = GetChild();
 	if(Message)
 		cout << "[Node] " << Message(go, this) << endl;
-	return (go && child) ? child->Execute(go) : BehaviourResult::Failure;
+	return (go && child) ? child->Execute(go) : BehaviourResult::Success;
 }
 
 /// --- SUCCEEDER --- ///

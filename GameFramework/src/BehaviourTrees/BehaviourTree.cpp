@@ -4,20 +4,37 @@
 using namespace Framework;
 using namespace Framework::BT;
 
+BehaviourTree::BehaviourTree()
+{
+	m_RootNode.m_Context = new std::unordered_map<std::string, void*>();
+}
+
+BehaviourTree::~BehaviourTree() { Clear(); }
+
 void BehaviourTree::Clear()
 {
+	/*
 	for (auto& node : m_Nodes)
 	{
 		delete node->m_Context;
 		node.release();
 	}
 	m_Nodes.clear();
+	*/
+
+	delete m_RootNode.m_Context;
 }
 
 void BehaviourTree::Update(GameObject* gameObject)
 {
-	for(auto& node : m_Nodes)
+	/*
+	for (auto& node : m_Nodes)
+	{
 		node->Execute(gameObject);
+	}
+	*/
+
+	m_RootNode.Execute(gameObject);
 }
 
 void BehaviourTree::DrawNode(BehaviourNode* node, unsigned int x, unsigned int y, float zoom)
@@ -76,7 +93,10 @@ void BehaviourTree::DrawNode(BehaviourNode* node, unsigned int x, unsigned int y
 
 void BehaviourTree::Draw(unsigned int nodeIndex, unsigned int x, unsigned int y, float zoom)
 {
+	/*
 	if (nodeIndex >= m_Nodes.size())
 		nodeIndex = m_Nodes.size() - 1;
 	DrawNode(m_Nodes[nodeIndex].get(), x, y, zoom);
+	*/
+ 	DrawNode(&m_RootNode, x, y, zoom);
 }

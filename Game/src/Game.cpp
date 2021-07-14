@@ -2,15 +2,26 @@
 #include <iostream>
 #include <Game.hpp>
 #include <raylib.h>
-#include <Framework/BehaviourTrees/BehaviourTreeNodes.hpp>
 
 using namespace std;
 using namespace Framework;
+
+#ifdef BTREE_TEST
+#include <Framework/BehaviourTrees/Actions/Wait.hpp>
+#include <Framework/BehaviourTrees/Actions/SetValue.hpp>
+#include <Framework/BehaviourTrees/Actions/PlaySound.hpp>
+#include <Framework/BehaviourTrees/BehaviourTreeNodes.hpp>
+
 using namespace Framework::BT;
+#endif
+
+#ifdef ASTAR_TEST
 using namespace Framework::Pathfinding;
+#endif
 
 Game::Game()
 {
+	InitAudioDevice();
 	InitWindow(1000, 1000, "Game");
 	SetWindowState(FLAG_WINDOW_RESIZABLE);
 	SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
@@ -33,28 +44,19 @@ Game::Game()
 	m_Camera.target = { 0, 0 };
 
 	/// TEST BEHAVIOUR TREE ///
-	/*
-	auto sequence = m_BehaviourTree.Add<RandomSequence>();
+#ifdef BTREE_TEST
+	auto eval = m_BehaviourTree.Add<Evaluator>();
+	eval->Function = [](GameObject* go, Evaluator* caller) { return !caller->GetContext<bool>("HasWaited"); };
 
-	auto eval = sequence->AddChild<Evaluator>();
-	eval->Function = [](GameObject* go, Evaluator* caller) { return caller->GetContext<unsigned int>("SequenceIndex") > 5; };
-	auto dynamicLog = eval->SetResult<DynamicLogDecorator>(true);
-	dynamicLog->Message = [](GameObject* go, DynamicLogDecorator* caller) { return "Evaluated true!"; };
-	dynamicLog->SetChild<Succeeder>();
-	dynamicLog = eval->SetResult<DynamicLogDecorator>(false);
-	dynamicLog->Message = [](GameObject* go, DynamicLogDecorator* caller) { return "Evaluated false!"; };
-	dynamicLog->SetChild<Succeeder>();
+	auto sequence = eval->SetResult<Sequence>(true);
+	sequence->AddChild<LogDecorator>()->Message = "Waiting...";
+	sequence->AddChild<Wait>()->SetTime(4); // Seconds
+	sequence->AddChild<BT::PlaySound>()->Sound = LoadSound("./assets/Monke_1.wav");
+	sequence->AddChild<LogDecorator>()->Message = "Finished!";
+	sequence->AddChild<SetValue>()->Set("HasWaited", true);
+#endif
 
-	for (int i = 0; i < 10; i++)
-	{
-		auto log = sequence->AddChild<DynamicLogDecorator>();
-		log->Message = [=](GameObject* go, DynamicLogDecorator* caller) { return "Test message [" + to_string(i) + "]"; };
-		log->SetChild<Succeeder>();
-	}
-
-	m_BehaviourTree.Update(m_Root); // Should be called every Update instead
-	*/
-
+#ifdef ASTAR_TEST
 #if defined(ASTAR_GRID_HEXAGON)
 	m_AStarGrid = new Grid<HexGridNode>(GridWidth, GridHeight);
 #elif defined(ASTAR_GRID_TRIANGLE)
@@ -79,60 +81,67 @@ Game::Game()
 
 	m_AStarGrid->RefreshNodes();
 
-	m_AStar = AStar(5, AStar::EuclideanHeuristic);
-	m_AStar.StartSearch(m_AStarGrid->GetCell(0, 0), m_AStarGrid->GetCell(endX, endY));
+	m_AStar = AStar(10, AStar::EuclideanHeuristic);
+	m_AStar.StartSearch(m_AStarGrid->GetCell(GridWidth / 2, GridHeight / 2), m_AStarGrid->GetCell(endX, endY));
+#endif
 }
 
 Game::~Game()
 {
 	CloseWindow();
+#ifdef ASTAR_TEST
 	delete m_AStarGrid;
+#endif
 	delete m_Root;
 }
 
 void Game::Run()
 {
-	const float AStarStepTime = 0.0f;
-	float nextStep = AStarStepTime;
+	int AStarStepsPerFrame = 100;
+	const float AStarTimeBetweenSteps = 0.0f;
+	float nextStep = AStarTimeBetweenSteps;
 	while (!WindowShouldClose())
 	{
 		m_Camera.offset = { GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
 		BeginDrawing();
 		BeginMode2D(m_Camera);
-		ClearBackground(Color { 10, 10, 10, 255 });
+		ClearBackground(Color{ 10, 10, 10, 255 });
+
+#ifdef BTREE_TEST
+		m_BehaviourTree.Update(m_Root);
+#endif
 
 		Update();
 
 		m_Root->Update();
 		m_Root->Draw();
 
+#ifdef ASTAR_TEST
 		if (!m_AStar.IsFinished())
 		{
 			nextStep -= GetFrameTime();
 			if (nextStep <= 0.0f)
 			{
-				m_AStar.Step();
-				nextStep = AStarStepTime;
+				for(int i = 0; i < AStarStepsPerFrame; i++)
+					m_AStar.Step();
+				nextStep = AStarTimeBetweenSteps;
 			}
 		}
 
-		const int CellSize = 10;
-		const int CellPadding = 0;
 		auto foundPath = m_AStar.GetPath();
 		float largestScore = m_AStar.GetLargestFScore();
 		for (int x = 0; x < GridWidth; x++)
 		{
 			for (int y = 0; y < GridHeight; y++)
 			{
+				auto cell = m_AStarGrid->GetCell(x, y);
 				Color color = { 20, 20, 20, 255 };
-				int score = (m_AStarGrid->GetCell(x, y)->FScore / largestScore) * color.r * 2.0f;
+				int score = (cell->FScore / largestScore) * color.r * 2.0f;
 				color.r += min(score, (int)color.r);
 
-				if (!m_AStarGrid->GetCell(x, y)->Traversable)
+				if (cell->Traversable)
+					continue;
 					color = DARKGRAY;
-
-				if (find(foundPath.begin(), foundPath.end(), m_AStarGrid->GetCell(x, y)) != foundPath.end())
-					color = RED;
 
 #if defined(ASTAR_GRID_HEXAGON)
 				float finalX = ((x + (y % 2 == 0 ? 0.5f : 0)) - GridWidth / 2.0f) * (CellSize + CellPadding);
@@ -148,7 +157,6 @@ void Game::Run()
 					0.0f,
 					color
 				);
-				/*
 				DrawText(
 					("(" + to_string(x) + ", " + to_string(y) + ")").c_str(),
 					finalX - CellSize / 4.0f,
@@ -156,9 +164,8 @@ void Game::Run()
 					11,
 					BLACK
 				);
-				*/
 #elif defined(ASTAR_GRID_TRIANGLE)
-				
+
 #else
 				DrawRectangle(
 					(x - GridWidth / 2) * (CellSize + CellPadding),
@@ -172,22 +179,71 @@ void Game::Run()
 			}
 		}
 
-#ifndef NDEBUG
-		DrawFPS(-GetScreenWidth() / 2 + 10, -GetScreenHeight() / 2 + 10);
+#if defined(ASTAR_GRID_HEXAGON)
+
+#elif defined(ASTAR_GRID_TRIANGLE)
+
+#else
+		if(m_AStar.IsFinished())
+			for (auto pathNode : foundPath)
+				DrawRectangle(
+					(pathNode->x - GridWidth / 2) * (CellSize + CellPadding),
+					(pathNode->y - GridHeight / 2) * (CellSize + CellPadding),
+					CellSize,
+					CellSize,
+					RED
+				);
+#endif
 #endif
 
 		EndMode2D();
+
+		// DRAW UI
+// #ifndef NDEBUG
+		DrawFPS(10, 10);
+		DrawText(("Zoom: " + to_string(m_Camera.zoom)).c_str(), 10, 25, 11, GREEN);
+		DrawText(("A* Steps Per Frame: " + to_string(AStarStepsPerFrame)).c_str(), 10, 35, 11, GREEN);
+// #endif
+
+		if (IsKeyPressed(KEY_UP))
+			AStarStepsPerFrame *= 2;
+		if (IsKeyPressed(KEY_DOWN) && AStarStepsPerFrame > 1)
+			AStarStepsPerFrame /= 2;
+
 		EndDrawing();
 	}
 }
 
 void Game::Update()
 {
-	/*
-	auto children = m_Root->GetChildren();
-	for (auto child : children)
-		child->SetRotation(child->GetRotation() + 1.0f);
-	*/
+	// Simple camera drag controls
+	auto mouseDelta = GetMouseDelta();
+	mouseDelta.x /= m_Camera.zoom;
+	mouseDelta.y /= m_Camera.zoom;
+	if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
+		m_Camera.target = { m_Camera.target.x - mouseDelta.x, m_Camera.target.y - mouseDelta.y };
+
+	if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+	{
+		Vector2 pos = GetScreenToWorld2D(GetMousePosition(), m_Camera);
+		pos.x += (GridWidth  / 2) * (CellSize + CellPadding);
+		pos.y += (GridHeight / 2) * (CellSize + CellPadding);
+		unsigned int cellX = pos.x / (CellSize + CellPadding);
+		unsigned int cellY = pos.y / (CellSize + CellPadding);
+		auto cell = m_AStarGrid->GetCell(cellX, cellY);
+		if (cellX > 0 && cellX < GridWidth &&
+			cellY > 0 && cellY < GridHeight &&
+			cell->Traversable)
+		{
+			m_AStarGrid->RefreshNodes();
+			m_AStar.StartSearch(m_AStarGrid->GetCell(GridWidth / 2, GridHeight / 2), cell);
+		}
+	}
+
+	// Zoom in & out using mouse scroll
+
+	m_Camera.zoom += GetMouseWheelMove() * GetFrameTime() * ZoomSpeed;
+	m_Camera.zoom = max(min(m_Camera.zoom, MaxZoom), MinZoom); // Clamp
 }
 
 void main()

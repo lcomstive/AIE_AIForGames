@@ -68,8 +68,15 @@ namespace Framework::Pathfinding
 		void RefreshNodes()
 		{
 			for (unsigned int x = 0; x < m_Width; x++)
+			{
 				for (unsigned int y = 0; y < m_Height; y++)
-					((GridNode*)&m_Grid[x][y])->CalculateNeighbours(this);
+				{
+					GridNode* node = (GridNode*)&m_Grid[x][y];
+					node->CalculateNeighbours(this);
+					node->Cell.FScore = node->Cell.GScore = node->Cell.HScore = 0;
+					node->Cell.Previous = nullptr;
+				}
+			}
 		}
 
 		~Grid()

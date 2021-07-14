@@ -34,7 +34,7 @@ void SquareGridNodeAddNeighbour(AStarCell* cell, int offsetX, int offsetY, Grid<
 void SquareGridNode::CalculateNeighbours(void* gridPtr)
 {
 	auto grid = (Grid<SquareGridNode>*)gridPtr;
-	AStarCell* cell = nullptr;
+	Cell.Neighbours.clear();
 
 	// Left
 	SquareGridNodeAddNeighbour(&Cell,  1,  0, grid); // Right
@@ -53,6 +53,7 @@ void SquareGridNode::CalculateNeighbours(void* gridPtr)
 void TriangleGridNode::CalculateNeighbours(void* gridPtr)
 {
 	auto grid = (Grid<TriangleGridNode>*)gridPtr;
+	Cell.Neighbours.clear();
 
 	// Left
 	if (Cell.x > 0) Cell.Neighbours.emplace_back(grid->GetCell(Cell.x - 1, Cell.y));
@@ -87,6 +88,7 @@ void HexGridNodeAddNeighbour(AStarCell* cell, int offsetX, int offsetY, Grid<Hex
 void HexGridNode::CalculateNeighbours(void* gridPtr)
 {
 	auto grid = (Grid<HexGridNode>*)gridPtr;
+	Cell.Neighbours.clear();
 
 	HexGridNodeAddNeighbour(&Cell,  0,  1, grid); // NW
 	HexGridNodeAddNeighbour(&Cell, -1,  0, grid); //  W
