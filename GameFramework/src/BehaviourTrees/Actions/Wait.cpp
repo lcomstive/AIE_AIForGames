@@ -16,5 +16,8 @@ void Wait::SetTime(float time)
 BehaviourResult Wait::Execute(GameObject* go)
 {
 	m_TimeLeft -= GetFrameTime();
-	return m_TimeLeft > 0 ? BehaviourResult::Pending : BehaviourResult::Success;
+	if (m_TimeLeft > 0)
+		return BehaviourResult::Pending;
+	m_TimeLeft = m_WaitTime;
+	return BehaviourResult::Success;
 }

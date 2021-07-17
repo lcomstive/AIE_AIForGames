@@ -1,4 +1,5 @@
 #include <Framework/GameObject.hpp>
+#include <Framework/PhysicsWorld.hpp>
 
 using namespace std;
 using namespace Framework;
@@ -13,8 +14,13 @@ unsigned int GameObject::GetNextID()
 }
 
 GameObject::GameObject(GameObject* parent) : GameObject("GameObject", parent) { }
-GameObject::GameObject(string name, GameObject* parent)
-	: m_Name(name), m_Rotation(0), m_Position({ 0, 0 }), m_Size({ 1, 1 })
+GameObject::GameObject(string name, GameObject* parent) :
+	m_Name(name),
+	m_Rotation(0),
+	m_Size({ 1, 1 }),
+	m_Position({ 0, 0 }),
+	m_PhysicsBody(nullptr),
+	m_DirtyTransform(false)
 {
 	SetParent(parent);
 	m_ID = GetNextID();
@@ -41,6 +47,60 @@ void GameObject::Draw()
 	OnDraw();
 	for (auto& pair : m_Children)
 		pair.second->Draw();
+}
+
+void GameObject::PrePhysicsUpdate()
+{
+	if (m_PhysicsBody)
+	{
+		if(m_DirtyTransform)
+			m_PhysicsBody->SetTransform(m_Position, m_Rotation);
+		m_DirtyTransform = false;
+
+		OnPrePhysicsUpdate();
+	}
+
+	for (auto pair : m_Children)
+		pair.second->PrePhysicsUpdate();
+}
+
+void GameObject::PostPhysicsUpdate()
+{
+	if (m_PhysicsBody)
+	{
+
+		m_Rotation = m_PhysicsBody->GetAngle();
+		m_Position = m_PhysicsBody->GetPosition();
+
+		OnPostPhysicsUpdate();
+	}
+
+	for (auto pair : m_Children)
+		pair.second->PostPhysicsUpdate();
+}
+
+void GameObject::GeneratePhysicsBody(bool dynamic, float density, float friction)
+{
+	if (m_PhysicsBody)
+		PhysicsWorld::GetBox2DWorld()->DestroyBody(m_PhysicsBody);
+	
+	// Create body
+	b2BodyDef body;
+	body.type = b2_dynamicBody;
+	body.angle = m_Rotation;
+	body.position.Set(m_Position.x, m_Position.y);
+	m_PhysicsBody = PhysicsWorld::GetBox2DWorld()->CreateBody(&body);
+
+	// Define shape and attach
+	b2PolygonShape box;
+	box.SetAsBox(m_Size.x / 2.0f, m_Size.y / 2.0f);
+
+	b2FixtureDef fixture;
+	fixture.shape = &box;
+	fixture.density = density;
+	fixture.friction = friction;
+
+	m_PhysicsBody->CreateFixture(&fixture);
 }
 
 /// --- GETTERS & SETTERS --- ///
@@ -83,14 +143,41 @@ void GameObject::RemoveChild(GameObject* child)
 		m_Children.erase(child->m_ID);
 }
 
-Vector2& GameObject::GetPosition() { return m_Position; }
-void GameObject::SetPosition(Vector2 position) { m_Position = position; }
+Vec2& GameObject::GetPosition() { return m_Position; }
+void GameObject::SetPosition(Vec2 position)
+{
+	Vec2 delta = m_Position - position;
+	m_Position = position;
+	m_DirtyTransform = true;
 
-Vector2& GameObject::GetSize() { return m_Size; }
-void GameObject::SetSize(Vector2 size) { m_Size = size; }
+	for (auto& child : m_Children)
+		child.second->SetPosition(child.second->m_Position + delta);
+}
+
+Vec2& GameObject::GetSize() { return m_Size; }
+void GameObject::SetSize(Vec2 size) { m_Size = size; }
 
 float& GameObject::GetRotation() { return m_Rotation; }
-void GameObject::SetRotation(float rotation) { m_Rotation = rotation; }
+void GameObject::SetRotation(float rotation)
+{
+	float delta = m_Rotation - rotation;
+	m_Rotation = rotation;
+	m_DirtyTransform = true;
+
+	for (auto& child : m_Children)
+		child.second->SetRotation(child.second->m_Rotation + delta);
+}
 
 std::string& GameObject::GetName() { return m_Name; }
 void GameObject::SetName(std::string name) { m_Name = name; }
+
+Vec2 GameObject::GetForward()
+{
+	return
+	{
+		sin(m_Rotation),
+		cos(m_Rotation)
+	};
+}
+
+b2Body* GameObject::GetPhysicsBody() { return m_PhysicsBody; }

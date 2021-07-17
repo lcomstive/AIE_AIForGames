@@ -19,7 +19,7 @@ BehaviourResult SetValue::Execute(GameObject* go)
 {
 	SetContext(m_Name, m_Value);
 #ifndef NDEBUG
-	std::cout << "Action SetValue: " << m_Name << "' = " << m_Value << std::endl;
+	std::cout << "[BT::SetValue] '" << m_Name << "' = " << m_Value << std::endl;
 #endif
 	return BehaviourResult::Success;
 }

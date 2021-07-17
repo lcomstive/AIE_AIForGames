@@ -1,8 +1,9 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <raylib.h>
 #include <unordered_map>
+#include <box2d/box2d.h>
+#include <Framework/Vec2.hpp>
 
 namespace Framework
 {
@@ -16,8 +17,12 @@ namespace Framework
 		std::string m_Name;
 
 		float m_Rotation;
-		Vector2 m_Size;
-		Vector2 m_Position;
+		Vec2 m_Size;
+		Vec2 m_Position;
+		bool m_DirtyTransform;
+
+		// Physics
+		b2Body* m_PhysicsBody;
 
 		// Heirarchy
 		GameObject* m_Parent;
@@ -30,11 +35,35 @@ namespace Framework
 
 		void Draw();
 		void Update();
+		void PrePhysicsUpdate();
+		void PostPhysicsUpdate();
 
+		void GeneratePhysicsBody(
+			bool dynamic = true, // Whether the physics body will move
+			float density = 1.0f,
+			float friction = 0.3f
+		);
+
+		/// --- VIRTUALS --- ///
+
+		// Called when a drawing a frame to screen
 		virtual void OnDraw() { }
+
+		// Called once per frame
 		virtual void OnUpdate() { }
 
+		// Called before the physics calculations are done
+		virtual void OnPrePhysicsUpdate() { }
+
+		// Called after the physics calculations are done
+		virtual void OnPostPhysicsUpdate() { }
+
+		/// --- GETTERS & SETTERS --- ///
+
+		// Gets parent
 		GameObject* GetParent();
+
+		// Sets parent
 		void SetParent(GameObject* parent = nullptr);
 
 		std::vector<GameObject*> GetChildren();
@@ -42,17 +71,20 @@ namespace Framework
 		void AddChildren(std::vector<GameObject*> children);
 		void RemoveChild(GameObject* child);
 
-		Vector2& GetPosition();
-		void SetPosition(Vector2 position);
+		Vec2& GetPosition();
+		void SetPosition(Vec2 position);
 
-		Vector2& GetSize();
-		void SetSize(Vector2 size);
+		Vec2& GetSize();
+		void SetSize(Vec2 size);
 
 		float& GetRotation();
 		void SetRotation(float rotation);
 
 		std::string& GetName();
 		void SetName(std::string name);
+
+		Vec2 GetForward();
+		b2Body* GetPhysicsBody();
 
 		operator unsigned int() const { return m_ID; }
 		operator std::string() const { return "GameObject[" + std::to_string(m_ID) + "]"; }

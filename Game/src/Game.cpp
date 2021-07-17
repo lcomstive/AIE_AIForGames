@@ -2,6 +2,7 @@
 #include <iostream>
 #include <Game.hpp>
 #include <raylib.h>
+#include <Framework/PhysicsWorld.hpp>
 
 using namespace std;
 using namespace Framework;
@@ -26,6 +27,10 @@ Game::Game()
 	SetWindowState(FLAG_WINDOW_RESIZABLE);
 	SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
 
+	PhysicsWorldArgs args;
+	args.Gravity = { 0, 0 };
+	PhysicsWorld::Init(args);
+
 	m_Root = new GameObject("Root");
 
 	// Chicken
@@ -36,6 +41,8 @@ Game::Game()
 	chicken->MaxFrames = 13;
 	chicken->SetTimeBetweenFrames(0.1f);
 	chicken->SetPosition({ -400, 0 });
+
+	chicken->GeneratePhysicsBody(true, 100, 0.0f);
 
 	m_Root->AddChild(chicken);
 
@@ -48,12 +55,17 @@ Game::Game()
 	auto eval = m_BehaviourTree.Add<Evaluator>();
 	eval->Function = [](GameObject* go, Evaluator* caller) { return !caller->GetContext<bool>("HasWaited"); };
 
-	auto sequence = eval->SetResult<Sequence>(true);
-	sequence->AddChild<LogDecorator>()->Message = "Waiting...";
-	sequence->AddChild<Wait>()->SetTime(4); // Seconds
-	sequence->AddChild<BT::PlaySound>()->Sound = LoadSound("./assets/Monke_1.wav");
-	sequence->AddChild<LogDecorator>()->Message = "Finished!";
-	sequence->AddChild<SetValue>()->Set("HasWaited", true);
+	auto sequenceTrue = eval->SetResult<Sequence>(true);
+	sequenceTrue->AddChild<Log>()->Message = "Waiting...";
+	sequenceTrue->AddChild<Wait>()->SetTime(1.0f); // Seconds
+	sequenceTrue->AddChild<BT::PlaySound>()->Sound = LoadSound("./assets/Monke_1.wav");
+	sequenceTrue->AddChild<Log>()->Message = "Finished!";
+	sequenceTrue->AddChild<SetValue>()->Set("HasWaited", true);
+
+	auto sequenceFalse = eval->SetResult<Sequence>(false);
+	sequenceFalse->AddChild<Log>()->Message = "Finished waiting, resetting...";
+	sequenceFalse->AddChild<Wait>()->SetTime(0.5f);
+	sequenceFalse->AddChild<SetValue>()->Set("HasWaited", false);
 #endif
 
 #ifdef ASTAR_TEST
@@ -88,6 +100,8 @@ Game::Game()
 
 Game::~Game()
 {
+	PhysicsWorld::Destroy();
+
 	CloseWindow();
 #ifdef ASTAR_TEST
 	delete m_AStarGrid;
@@ -97,9 +111,11 @@ Game::~Game()
 
 void Game::Run()
 {
+#if ASTAR_TEST
 	int AStarStepsPerFrame = 100;
 	const float AStarTimeBetweenSteps = 0.0f;
 	float nextStep = AStarTimeBetweenSteps;
+#endif
 	while (!WindowShouldClose())
 	{
 		m_Camera.offset = { GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
@@ -112,6 +128,10 @@ void Game::Run()
 #endif
 
 		Update();
+
+		m_Root->PrePhysicsUpdate();
+		PhysicsWorld::Step();
+		m_Root->PostPhysicsUpdate();
 
 		m_Root->Update();
 		m_Root->Draw();
@@ -201,14 +221,17 @@ void Game::Run()
 		// DRAW UI
 // #ifndef NDEBUG
 		DrawFPS(10, 10);
-		DrawText(("Zoom: " + to_string(m_Camera.zoom)).c_str(), 10, 25, 11, GREEN);
-		DrawText(("A* Steps Per Frame: " + to_string(AStarStepsPerFrame)).c_str(), 10, 35, 11, GREEN);
+		DrawText(("Zoom: " + to_string(m_Camera.zoom)).c_str(), 10, 30, 11, GREEN);
 // #endif
+
+#if ASTAR_TEST
+		DrawText(("A* Steps Per Frame: " + to_string(AStarStepsPerFrame)).c_str(), 10, 35, 11, GREEN);
 
 		if (IsKeyPressed(KEY_UP))
 			AStarStepsPerFrame *= 2;
 		if (IsKeyPressed(KEY_DOWN) && AStarStepsPerFrame > 1)
 			AStarStepsPerFrame /= 2;
+#endif
 
 		EndDrawing();
 	}
@@ -223,6 +246,7 @@ void Game::Update()
 	if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
 		m_Camera.target = { m_Camera.target.x - mouseDelta.x, m_Camera.target.y - mouseDelta.y };
 
+#if ASTAR_TEST
 	if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
 	{
 		Vector2 pos = GetScreenToWorld2D(GetMousePosition(), m_Camera);
@@ -239,11 +263,15 @@ void Game::Update()
 			m_AStar.StartSearch(m_AStarGrid->GetCell(GridWidth / 2, GridHeight / 2), cell);
 		}
 	}
+#endif
 
 	// Zoom in & out using mouse scroll
 
 	m_Camera.zoom += GetMouseWheelMove() * GetFrameTime() * ZoomSpeed;
 	m_Camera.zoom = max(min(m_Camera.zoom, MaxZoom), MinZoom); // Clamp
+
+	if(IsKeyDown(KEY_SPACE))
+		m_Root->GetChildren()[0]->GetPhysicsBody()->ApplyForce({ 10, 10 }, { 0, 0 }, true);
 }
 
 void main()

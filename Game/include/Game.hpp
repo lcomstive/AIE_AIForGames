@@ -2,8 +2,8 @@
 
 #include <Framework/GameObjects/AnimatedSprite.hpp>
 
-#define ASTAR_TEST
-// #define BTREE_TEST
+// #define ASTAR_TEST
+#define BTREE_TEST
 
 #ifdef ASTAR_TEST
 #include <Framework/Pathfinding/AStar.hpp>

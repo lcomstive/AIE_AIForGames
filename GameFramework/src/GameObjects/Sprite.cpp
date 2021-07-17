@@ -12,8 +12,8 @@ void Sprite::DrawSprite(Rectangle view)
 	if (!m_Texture.width || !m_Texture.height)
 		return; // Texture invalid
 
-	Vector2& size = GetSize();
-	Vector2& position = GetPosition();
+	Vec2& size = GetSize();
+	Vec2& position = GetPosition();
 	DrawTexturePro(
 		m_Texture,
 		view, // Source Rect

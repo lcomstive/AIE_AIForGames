@@ -27,6 +27,7 @@ namespace Framework::BT
 		std::unordered_map<std::string, void*>* m_Context;
 	public:
 		BehaviourNode() : m_Context() {}
+		BehaviourNode(const BehaviourNode& other) : m_Context(other.m_Context) { }
 		~BehaviourNode() = default;
 
 		virtual std::string GetName() { return "Node"; }
@@ -46,7 +47,7 @@ namespace Framework::BT
 			if (!ContextExists(name))
 				return T();
 			// Can break something if type is different, but using void* to store data so no way to check for error
-			return (T)m_Context->at(name); 
+			return (T)m_Context->at(name);
 		}
 	};
 	typedef BehaviourNode Action;
@@ -86,13 +87,15 @@ namespace Framework::BT
 		virtual std::string GetName() override { return "Evaluator"; }
 	};
 
+	class Sequence;
+
 	// Abstract node class with many children behaviours
 	class Composite : public BehaviourNode
 	{
 		std::vector<BehaviourNode*> m_Children;
 
 	protected:
-		int PendingChildIndex = -1; // TODO: Find a better way of doing this
+		int PendingChildIndex = -1; // TODO: Find a better way of doing this?
 
 	public:
 		~Composite();
@@ -102,8 +105,10 @@ namespace Framework::BT
 		template<typename T>
 		T* AddChild()
 		{
+#ifndef NDEBUG
 			bool isBehaviourType = std::is_base_of<BT::BehaviourNode, T>::value;
 			assert(isBehaviourType);
+#endif
 
 			m_Children.emplace_back(new T());
 			T* child = (T*)m_Children[m_Children.size() - 1];
@@ -130,7 +135,7 @@ namespace Framework::BT
 		virtual BehaviourResult Execute(GameObject* go) override;
 		virtual std::string GetName() override { return "RandomSequence"; }
 	};
-	
+
 	// OR node (runs child behaviours until one succeeds)
 	class Selector : public Composite
 	{
@@ -159,8 +164,10 @@ namespace Framework::BT
 		template<typename T>
 		T* SetChild()
 		{
+#ifndef NDEBUG
 			bool isBehaviourType = std::is_base_of<BT::BehaviourNode, T>::value;
 			assert(isBehaviourType);
+#endif
 
 			if (m_Child)
 				m_Child.release();
@@ -183,7 +190,7 @@ namespace Framework::BT
 	};
 
 	// Prints message when executed, useful for debugging
-	class LogDecorator : public Decorator
+	class Log : public Decorator
 	{
 	public:
 		std::string Message;
@@ -191,12 +198,12 @@ namespace Framework::BT
 		virtual BehaviourResult Execute(GameObject* go) override;
 		virtual std::string GetName() override { return "Log"; }
 	};
-	
+
 	// Prints message when executed, useful for debugging
-	class DynamicLogDecorator : public Decorator
+	class DynamicLog : public Decorator
 	{
 	public:
-		std::function<std::string(GameObject* go, DynamicLogDecorator* caller)> Message;
+		std::function<std::string(GameObject* go, DynamicLog* caller)> Message;
 
 		virtual BehaviourResult Execute(GameObject* go) override;
 		virtual std::string GetName() override { return "DynamicLog"; }

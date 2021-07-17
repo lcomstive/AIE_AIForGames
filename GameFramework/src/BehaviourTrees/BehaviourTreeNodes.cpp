@@ -34,6 +34,7 @@ Composite::~Composite()
 		delete child;
 	m_Children.clear();
 }
+
 vector<BehaviourNode*>& Composite::GetChildren() { return m_Children; }
 
 /// --- SEQUENCE --- ///
@@ -59,6 +60,7 @@ BehaviourResult Sequence::Execute(GameObject* go)
 			if (++PendingChildIndex >= children.size())
 			{
 				child = nullptr;
+				PendingChildIndex = -1;
 				break;
 			}
 			child = children[PendingChildIndex];
@@ -178,7 +180,7 @@ BehaviourResult Inverse::Execute(GameObject* go)
 }
 
 /// --- LOG DECORATOR --- ///
-BehaviourResult LogDecorator::Execute(GameObject* go)
+BehaviourResult Log::Execute(GameObject* go)
 {
 	auto child = GetChild();
 	cout << "[Node] " << Message << endl;
@@ -186,7 +188,7 @@ BehaviourResult LogDecorator::Execute(GameObject* go)
 }
 
 /// --- DYNAMIC LOG DECORATOR --- ///
-BehaviourResult DynamicLogDecorator::Execute(GameObject* go)
+BehaviourResult DynamicLog::Execute(GameObject* go)
 {
 	auto child = GetChild();
 	if(Message)

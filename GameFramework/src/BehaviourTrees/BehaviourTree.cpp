@@ -11,31 +11,9 @@ BehaviourTree::BehaviourTree()
 
 BehaviourTree::~BehaviourTree() { Clear(); }
 
-void BehaviourTree::Clear()
-{
-	/*
-	for (auto& node : m_Nodes)
-	{
-		delete node->m_Context;
-		node.release();
-	}
-	m_Nodes.clear();
-	*/
+void BehaviourTree::Clear() { delete m_RootNode.m_Context; }
 
-	delete m_RootNode.m_Context;
-}
-
-void BehaviourTree::Update(GameObject* gameObject)
-{
-	/*
-	for (auto& node : m_Nodes)
-	{
-		node->Execute(gameObject);
-	}
-	*/
-
-	m_RootNode.Execute(gameObject);
-}
+void BehaviourTree::Update(GameObject* gameObject) { m_RootNode.Execute(gameObject); }
 
 void BehaviourTree::DrawNode(BehaviourNode* node, unsigned int x, unsigned int y, float zoom)
 {
@@ -45,7 +23,7 @@ void BehaviourTree::DrawNode(BehaviourNode* node, unsigned int x, unsigned int y
 	const float FontSize = 16.0f;
 
 	int textLength = MeasureText(node->GetName().c_str(), (int)(FontSize * zoom)) + 20;
-	DrawRectangle(x, y, textLength * zoom, (int)(FontSize * zoom * 1.6f), RAYWHITE);
+	DrawRectangle(x, y, (int)(textLength * zoom), (int)(FontSize * zoom * 1.6f), RAYWHITE);
 	DrawText(node->GetName().c_str(), x + 10, y + 5, (int)(FontSize * zoom), BLACK);
 
 	// Draw Evaluator
@@ -74,8 +52,8 @@ void BehaviourTree::DrawNode(BehaviourNode* node, unsigned int x, unsigned int y
 		for (int i = 0; i < children.size(); i++)
 			DrawNode(
 				children[i],
-				(x + textLength) * zoom * i,
-				y + textLength * zoom * 2.0f,
+				(int)((x + textLength) * zoom * i),
+				(int)(y + textLength * zoom * 2.0f),
 				zoom
 			);
 	}
@@ -86,7 +64,7 @@ void BehaviourTree::DrawNode(BehaviourNode* node, unsigned int x, unsigned int y
 		DrawNode(
 			decorator->GetChild(),
 			x,
-			y + textLength * zoom * 2.0f,
+			(int)(y + textLength * zoom * 2.0f),
 			zoom
 		);
 }
