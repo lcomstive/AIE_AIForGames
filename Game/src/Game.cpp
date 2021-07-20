@@ -46,7 +46,7 @@ Game::Game()
 
 	// Chicken
 	AnimatedSprite* chicken = new AnimatedSprite("./assets/Sprites/Chicken/Idle (32x34).png");
-	chicken->SetSize(Vector2{ 100, 100 });
+	chicken->SetSize(Vec2 { 100, 100 });
 	chicken->View.width = 32;
 	chicken->View.height = 34;
 	chicken->MaxFrames = 13;
@@ -59,7 +59,7 @@ Game::Game()
 
 	// Chicken2
 	AnimatedSprite* chicken2 = new AnimatedSprite("./assets/Sprites/Chicken/Idle (32x34).png");
-	chicken2->SetSize(Vector2{ 100, 100 });
+	chicken2->SetSize(Vec2 { 100, 100 });
 	chicken2->View.width = 32;
 	chicken2->View.height = 34;
 	chicken2->MaxFrames = 13;
@@ -74,7 +74,7 @@ Game::Game()
 	
 	// FatBird
 	AnimatedSprite* fatBird = new AnimatedSprite("./assets/Sprites/FatBird/Idle (40x48).png");
-	fatBird->SetSize(Vector2{ 100, 100 });
+	fatBird->SetSize(Vec2 { 100, 100 });
 	fatBird->View.width = 40;
 	fatBird->View.height = 48;
 	fatBird->MaxFrames = 8;
@@ -347,7 +347,7 @@ void Game::Update()
 	auto children = m_Root->GetChildren();
 	if (children.size() == 0)
 		return;
-	Vec2 mousePos = GetScreenToWorld2D(GetMousePosition(), m_Camera);
+	Vector2 mousePos = GetScreenToWorld2D(GetMousePosition(), m_Camera);
 	mousePos.x *= -1.0f;
 	children[1]->SetPosition(mousePos);
 }
@@ -359,9 +359,10 @@ void Game::PostPhysicsUpdate()
 	
 }
 
-void main()
+int main()
 {
 	Game game;
 	game.Run();
+	return 0;
 }
 

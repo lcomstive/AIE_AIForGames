@@ -37,8 +37,8 @@ namespace Framework::BT
 				unsigned long long	Integer;
 			};
 
-			ContextData() : Type(ContextDataType::Other), Other(nullptr), Decimal(0), String(""), Integer(0) { }
-			ContextData(const ContextData& other) : Type(other.Type), Other(other.Other), Decimal(other.Decimal), String(other.String), Integer(other.Integer) { }
+			ContextData() : Type(ContextDataType::Other), Other(nullptr) { }
+			ContextData(const ContextData& other) : Type(other.Type), Other(other.Other) { }
 			~ContextData() { }
 		};
 
@@ -89,10 +89,10 @@ namespace Framework::BT
 		}
 
 		template<typename T>
-		T GetContext(std::string name, T default)
+		T GetContext(std::string name, T defaultValue)
 		{
 			if (!ContextExists(name))
-				return default;
+				return defaultValue;
 			// Can break something if type is different, but using void* to store data so no way to check for error
 			return (T)m_Context->at(name).Other;
 		}
@@ -100,45 +100,45 @@ namespace Framework::BT
 		template<>
 		int GetContext(std::string name) { return (int)GetContext<unsigned long long>(name); }
 		template<>
-		int GetContext(std::string name, int default) { return (int)GetContext<unsigned long long>(name, default); }
+		int GetContext(std::string name, int defaultValue) { return (int)GetContext<unsigned long long>(name, defaultValue); }
 
 		template<>
 		long GetContext(std::string name) { return (long)GetContext<unsigned long long>(name); }
 		template<>
-		long GetContext(std::string name, long default) { return (long)GetContext<unsigned long long>(name, default); }
+		long GetContext(std::string name, long defaultValue) { return (long)GetContext<unsigned long long>(name, defaultValue); }
 
 		template<>
 		short GetContext(std::string name) { return (short)GetContext<unsigned long long>(name); }
 		template<>
-		short GetContext(std::string name, short default) { return (short)GetContext<unsigned long long>(name, default); }
+		short GetContext(std::string name, short defaultValue) { return (short)GetContext<unsigned long long>(name, defaultValue); }
 
 		template<>
 		long long GetContext(std::string name) { return (short)GetContext<unsigned long long>(name); }
 		template<>
-		long long GetContext(std::string name, long long default) { return (short)GetContext<unsigned long long>(name, default); }
+		long long GetContext(std::string name, long long defaultValue) { return (short)GetContext<unsigned long long>(name, defaultValue); }
 
 		template<>
 		unsigned int GetContext(std::string name) { return (short)GetContext<unsigned long long>(name); }
 		template<>
-		unsigned int GetContext(std::string name, unsigned int default) { return (short)GetContext<unsigned long long>(name, default); }
+		unsigned int GetContext(std::string name, unsigned int defaultValue) { return (short)GetContext<unsigned long long>(name, defaultValue); }
 
 		template<>
 		unsigned long GetContext(std::string name) { return (short)GetContext<unsigned long long>(name); }
 		template<>
-		unsigned long GetContext(std::string name, unsigned long default) { return (short)GetContext<unsigned long long>(name, default); }
+		unsigned long GetContext(std::string name, unsigned long defaultValue) { return (short)GetContext<unsigned long long>(name, defaultValue); }
 
 		template<>
 		unsigned short GetContext(std::string name) { return (short)GetContext<unsigned long long>(name); }
 		template<>
-		unsigned short GetContext(std::string name, unsigned short default) { return (short)GetContext<unsigned long long>(name, default); }
+		unsigned short GetContext(std::string name, unsigned short defaultValue) { return (short)GetContext<unsigned long long>(name, defaultValue); }
 
 		template<>
 		unsigned long long GetContext(std::string name) { return GetContext<unsigned long long>(name, 0); }
 		template<>
-		unsigned long long GetContext(std::string name, unsigned long long default)
+		unsigned long long GetContext(std::string name, unsigned long long defaultValue)
 		{
 			if (!ContextExists(name))
-				return default;
+				return defaultValue;
 			ContextData& data = m_Context->at(name);
 			assert(data.Type == ContextDataType::Integer);
 			return data.Integer;
@@ -147,15 +147,15 @@ namespace Framework::BT
 		template<>
 		float GetContext(std::string name) { return (float)GetContext<double>(name); }
 		template<>
-		float GetContext(std::string name, float default) { return (float)GetContext<double>(name, default); }
+		float GetContext(std::string name, float defaultValue) { return (float)GetContext<double>(name, defaultValue); }
 
 		template<>
 		double GetContext(std::string name) { return GetContext<double>(name, 0); }
 		template<>
-		double GetContext(std::string name, double default)
+		double GetContext(std::string name, double defaultValue)
 		{
 			if (!ContextExists(name))
-				return default;
+				return defaultValue;
 			ContextData& data = m_Context->at(name);
 			assert(data.Type == ContextDataType::Decimal);
 			return data.Decimal;
@@ -164,10 +164,10 @@ namespace Framework::BT
 		template<>
 		std::string GetContext(std::string name) { return GetContext(name, ""); }
 		template<>
-		std::string GetContext(std::string name, std::string default)
+		std::string GetContext(std::string name, std::string defaultValue)
 		{
 			if (!ContextExists(name))
-				return default;
+				return defaultValue;
 			ContextData& data = m_Context->at(name);
 			assert(data.Type == ContextDataType::String);
 			return data.String;

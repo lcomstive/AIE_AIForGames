@@ -18,8 +18,8 @@ GameObject::GameObject(GameObject* parent) : GameObject("GameObject", parent) { 
 GameObject::GameObject(string name, GameObject* parent) :
 	m_Name(name),
 	m_Rotation(0),
-	m_Size({ 1, 1 }),
-	m_Position({ 0, 0 }),
+	m_Size(Vec2 { 1, 1 }),
+	m_Position(Vec2 { 0, 0 }),
 	m_PhysicsBody(nullptr),
 	m_DirtyTransform(false)
 {

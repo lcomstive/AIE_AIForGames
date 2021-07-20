@@ -1,3 +1,4 @@
+#include <math.h>
 #include <cassert>
 #include <algorithm>
 #include <Framework/Pathfinding/AStar.hpp>

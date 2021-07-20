@@ -10,7 +10,7 @@ namespace Framework::BT
 		void* m_Value;
 	public:
 		template<typename T>
-		T Get() { return (T)m_Data; }
+		T Get() { return (T)m_Value; }
 
 		std::string& GetValueName();
 
