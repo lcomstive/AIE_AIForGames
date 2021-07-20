@@ -7,14 +7,45 @@ using namespace Framework::BT;
 
 void BehaviourNode::ClearContext() { m_Context->clear(); }
 void BehaviourNode::ClearContext(string name) { m_Context->erase(name); }
-void BehaviourNode::SetContext(string name, void* data)
-{
-	if (ContextExists(name))
-		m_Context->at(name) = data;
-	else
-		m_Context->emplace(name, data);
-}
 bool BehaviourNode::ContextExists(string name) { return m_Context->find(name) != m_Context->end(); }
+
+void BehaviourNode::SetContext(string name, int value) { SetContext(name, (unsigned long long)value); }
+void BehaviourNode::SetContext(string name, long value) { SetContext(name, (unsigned long long)value); }
+void BehaviourNode::SetContext(string name, short value) { SetContext(name, (unsigned long long)value); }
+void BehaviourNode::SetContext(string name, long long value) { SetContext(name, (unsigned long long)value); }
+void BehaviourNode::SetContext(string name, unsigned int value) { SetContext(name, (unsigned long long)value); }
+void BehaviourNode::SetContext(string name, unsigned long value) { SetContext(name, (unsigned long long)value); }
+void BehaviourNode::SetContext(string name, unsigned short value) { SetContext(name, (unsigned long long)value); }
+void BehaviourNode::SetContext(string name, unsigned long long value)
+{
+	if (!ContextExists(name))
+		m_Context->emplace(name, ContextData());
+
+	ContextData* data = &m_Context->at(name);
+	data->Type = ContextDataType::Integer;
+	data->Integer = value;
+}
+
+void BehaviourNode::SetContext(string name, std::string value)
+{
+	if (!ContextExists(name))
+		m_Context->emplace(name, ContextData());
+
+	ContextData* data = &m_Context->at(name);
+	data->Type = ContextDataType::String;
+	data->String = value;
+}
+
+void BehaviourNode::SetContext(string name, float value) { SetContext(name, double(value)); }
+void BehaviourNode::SetContext(string name, double value)
+{
+	if (!ContextExists(name))
+		m_Context->emplace(name, ContextData());
+
+	ContextData* data = &m_Context->at(name);
+	data->Type = ContextDataType::Decimal;
+	data->Decimal = value;
+}
 
 /// --- EVALUATOR --- ///
 BehaviourResult Evaluator::Execute(GameObject* go)
@@ -43,14 +74,13 @@ BehaviourResult Sequence::Execute(GameObject* go)
 	auto children = GetChildren();
 	if (!go || children.size() == 0)
 		return BehaviourResult::Failure;
-	if (PendingChildIndex < 0)
+	if (PendingChildIndex < 0 || PendingChildIndex >= children.size())
 		PendingChildIndex = 0;
 	BehaviourNode* child = children[PendingChildIndex];
 
-	unsigned int sequenceIndex = 0;
 	while (child)
 	{
-		SetContext("SequenceIndex", sequenceIndex++);
+		SetContext("SequenceIndex", PendingChildIndex);
 		auto result = child->Execute(go);
 		switch (result)
 		{
@@ -60,7 +90,6 @@ BehaviourResult Sequence::Execute(GameObject* go)
 			if (++PendingChildIndex >= children.size())
 			{
 				child = nullptr;
-				PendingChildIndex = -1;
 				break;
 			}
 			child = children[PendingChildIndex];

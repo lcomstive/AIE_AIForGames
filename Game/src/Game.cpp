@@ -9,6 +9,9 @@ using namespace Framework;
 
 #ifdef BTREE_TEST
 #include <Framework/BehaviourTrees/Actions/Wait.hpp>
+#include <Framework/BehaviourTrees/Actions/MoveTowards.hpp>
+#include <Framework/BehaviourTrees/Actions/CanSee.hpp>
+#include <Framework/BehaviourTrees/Actions/CanSeeTarget.hpp>
 #include <Framework/BehaviourTrees/Actions/SetValue.hpp>
 #include <Framework/BehaviourTrees/Actions/PlaySound.hpp>
 #include <Framework/BehaviourTrees/BehaviourTreeNodes.hpp>
@@ -33,6 +36,14 @@ Game::Game()
 
 	m_Root = new GameObject("Root");
 
+	// Floor
+	GameObject* floor = new GameObject("Floor");
+	floor->SetSize({ 10000, 30 });
+	floor->SetPosition({ 0, -250 });
+	floor->GeneratePhysicsBody(false);
+	floor->AddTag("Floor");
+	m_Root->AddChild(floor);
+
 	// Chicken
 	AnimatedSprite* chicken = new AnimatedSprite("./assets/Sprites/Chicken/Idle (32x34).png");
 	chicken->SetSize(Vector2{ 100, 100 });
@@ -41,17 +52,47 @@ Game::Game()
 	chicken->MaxFrames = 13;
 	chicken->SetTimeBetweenFrames(0.1f);
 	chicken->SetPosition({ -400, 0 });
-
-	chicken->GeneratePhysicsBody(true, 100, 0.0f);
-
+	chicken->AddTag("Player");
+	
+	chicken->GeneratePhysicsBody();
 	m_Root->AddChild(chicken);
 
+	// Chicken2
+	AnimatedSprite* chicken2 = new AnimatedSprite("./assets/Sprites/Chicken/Idle (32x34).png");
+	chicken2->SetSize(Vector2{ 100, 100 });
+	chicken2->View.width = 32;
+	chicken2->View.height = 34;
+	chicken2->MaxFrames = 13;
+	chicken2->SetTimeBetweenFrames(0.1f);
+	chicken2->SetPosition({ 400, 100 });
+	chicken2->AddTag("Player");
+
+	chicken2->SetRotation(-90);
+
+	chicken2->GeneratePhysicsBody();
+	m_Root->AddChild(chicken2);
+	
+	// FatBird
+	AnimatedSprite* fatBird = new AnimatedSprite("./assets/Sprites/FatBird/Idle (40x48).png");
+	fatBird->SetSize(Vector2{ 100, 100 });
+	fatBird->View.width = 40;
+	fatBird->View.height = 48;
+	fatBird->MaxFrames = 8;
+	fatBird->SetTimeBetweenFrames(0.1f);
+	fatBird->SetPosition({ 350, 0 });
+	
+	fatBird->GeneratePhysicsBody();
+	m_Root->AddChild(fatBird);
+
+	// Camera
 	m_Camera = Camera2D();
 	m_Camera.zoom = 1.0f;
+	m_Camera.rotation = 180.0f;
 	m_Camera.target = { 0, 0 };
 
 	/// TEST BEHAVIOUR TREE ///
 #ifdef BTREE_TEST
+	/*
 	auto eval = m_BehaviourTree.Add<Evaluator>();
 	eval->Function = [](GameObject* go, Evaluator* caller) { return !caller->GetContext<bool>("HasWaited"); };
 
@@ -66,6 +107,19 @@ Game::Game()
 	sequenceFalse->AddChild<Log>()->Message = "Finished waiting, resetting...";
 	sequenceFalse->AddChild<Wait>()->SetTime(0.5f);
 	sequenceFalse->AddChild<SetValue>()->Set("HasWaited", false);
+	*/
+
+	/*
+	auto sequence = m_BehaviourTree.Add<Sequence>();
+
+	auto canSee = sequence->AddChild<CanSee>();
+	canSee->TargetTag = "Player";
+	canSee->FieldOfView = 75.0f;
+	canSee->SightRange = 500.f;
+
+	sequence->AddChild<DynamicLog>()->Message = [](GameObject* go, DynamicLog* caller) { return "[" + to_string(go->GetID()) + "] found [" + to_string(caller->GetContext<unsigned int>("CanSee_Found")) + "]"; };
+	sequence->AddChild<MoveTowards>();
+	*/
 #endif
 
 #ifdef ASTAR_TEST
@@ -111,7 +165,7 @@ Game::~Game()
 
 void Game::Run()
 {
-#if ASTAR_TEST
+#ifdef ASTAR_TEST
 	int AStarStepsPerFrame = 100;
 	const float AStarTimeBetweenSteps = 0.0f;
 	float nextStep = AStarTimeBetweenSteps;
@@ -124,13 +178,17 @@ void Game::Run()
 		ClearBackground(Color{ 10, 10, 10, 255 });
 
 #ifdef BTREE_TEST
-		m_BehaviourTree.Update(m_Root);
+		auto children = m_Root->GetChildren();
+		m_BehaviourTree.Update(children[1]);
+		m_BehaviourTree.Update(children[2]);
 #endif
 
 		Update();
 
+		PrePhysicsUpdate();
 		m_Root->PrePhysicsUpdate();
 		PhysicsWorld::Step();
+		PostPhysicsUpdate();
 		m_Root->PostPhysicsUpdate();
 
 		m_Root->Update();
@@ -200,7 +258,19 @@ void Game::Run()
 		}
 
 #if defined(ASTAR_GRID_HEXAGON)
-
+		if (m_AStar.IsFinished())
+			for (auto pathNode : foundPath)
+				DrawPoly(
+					Vector2
+					{
+						((pathNode->x + ((int)pathNode->y % 2 == 0 ? 0.5f : 0.0f)) - GridWidth / 2.0f) * (CellSize + CellPadding),
+						(pathNode->y - GridHeight / 2) * (CellSize * 0.9f + CellPadding),
+					},
+					6,
+					CellSize * 0.6f,
+					0,
+					RED
+				);
 #elif defined(ASTAR_GRID_TRIANGLE)
 
 #else
@@ -216,6 +286,11 @@ void Game::Run()
 #endif
 #endif
 
+		// Draw debug physics colliders
+#ifndef NDEBUG
+		PhysicsWorld::GetBox2DWorld()->DebugDraw();
+#endif
+
 		EndMode2D();
 
 		// DRAW UI
@@ -224,7 +299,7 @@ void Game::Run()
 		DrawText(("Zoom: " + to_string(m_Camera.zoom)).c_str(), 10, 30, 11, GREEN);
 // #endif
 
-#if ASTAR_TEST
+#ifdef ASTAR_TEST
 		DrawText(("A* Steps Per Frame: " + to_string(AStarStepsPerFrame)).c_str(), 10, 35, 11, GREEN);
 
 		if (IsKeyPressed(KEY_UP))
@@ -244,9 +319,9 @@ void Game::Update()
 	mouseDelta.x /= m_Camera.zoom;
 	mouseDelta.y /= m_Camera.zoom;
 	if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
-		m_Camera.target = { m_Camera.target.x - mouseDelta.x, m_Camera.target.y - mouseDelta.y };
+		m_Camera.target = { m_Camera.target.x + mouseDelta.x, m_Camera.target.y + mouseDelta.y };
 
-#if ASTAR_TEST
+#ifdef ASTAR_TEST
 	if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
 	{
 		Vector2 pos = GetScreenToWorld2D(GetMousePosition(), m_Camera);
@@ -266,12 +341,22 @@ void Game::Update()
 #endif
 
 	// Zoom in & out using mouse scroll
-
 	m_Camera.zoom += GetMouseWheelMove() * GetFrameTime() * ZoomSpeed;
 	m_Camera.zoom = max(min(m_Camera.zoom, MaxZoom), MinZoom); // Clamp
 
-	if(IsKeyDown(KEY_SPACE))
-		m_Root->GetChildren()[0]->GetPhysicsBody()->ApplyForce({ 10, 10 }, { 0, 0 }, true);
+	auto children = m_Root->GetChildren();
+	if (children.size() == 0)
+		return;
+	Vec2 mousePos = GetScreenToWorld2D(GetMousePosition(), m_Camera);
+	mousePos.x *= -1.0f;
+	children[1]->SetPosition(mousePos);
+}
+
+void Game::PrePhysicsUpdate() { }
+
+void Game::PostPhysicsUpdate()
+{
+	
 }
 
 void main()
@@ -279,3 +364,4 @@ void main()
 	Game game;
 	game.Run();
 }
+

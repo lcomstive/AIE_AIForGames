@@ -1,35 +1,34 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <box2d/b2_world_callbacks.h>
 #include <Framework/BehaviourTrees/BehaviourTreeNodes.hpp>
 
 namespace Framework::BT
 {
-	class CanSee: public Action
+	class CanSeeTarget : public Action
 	{
-		class CanSeeRaycastCallback : public b2RayCastCallback
+		class CanSeeTargetRaycastCallback : public b2RayCastCallback
 		{
 		public:
+			bool CanSee;
+			unsigned int TargetID;
 			bool Started, Finished;
-			std::string Tag;
-			GameObject* Found;
 
-			CanSeeRaycastCallback() : Started(false), Finished(false), Found(nullptr), Tag() { }
+			CanSeeTargetRaycastCallback() : CanSee(false), Started(false), Finished(false), TargetID(-1) { }
 
 			float ReportFixture(b2Fixture* fixture, const b2Vec2& point, const b2Vec2& normal, float fraction) override;
 		};
 
-		CanSeeRaycastCallback m_Callback;
+		CanSeeTargetRaycastCallback  m_Callback;
 
 	public:
 		float SightRange = 100.0f;
 		float FieldOfView = 60.0f;
-		std::string TargetTag = "Player";
+		unsigned int TargetID = (unsigned int)-1;
 
-		bool GetValuesFromContext = false;
+		bool GetTargetFromContext = false;
 
-		virtual std::string GetName() override { return "CanSee"; }
+		virtual std::string GetName() override { return "CanSeeTarget"; }
 		virtual BehaviourResult Execute(GameObject* go) override;
 	};
 }

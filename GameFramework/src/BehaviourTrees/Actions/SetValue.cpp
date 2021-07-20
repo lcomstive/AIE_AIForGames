@@ -1,4 +1,3 @@
-#include <raylib.h>
 #include <Framework/BehaviourTrees/Actions/SetValue.hpp>
 
 #ifndef NDEBUG

@@ -10,6 +10,7 @@ namespace Framework
 	class GameObject
 	{
 		static std::unordered_map<unsigned int, GameObject*> m_IDs;
+		static std::unordered_map<std::string, std::vector<GameObject*>> m_GlobalTags;
 
 		static unsigned int GetNextID();
 
@@ -20,6 +21,7 @@ namespace Framework
 		Vec2 m_Size;
 		Vec2 m_Position;
 		bool m_DirtyTransform;
+		std::vector<std::string> m_Tags;
 
 		// Physics
 		b2Body* m_PhysicsBody;
@@ -66,10 +68,13 @@ namespace Framework
 		// Sets parent
 		void SetParent(GameObject* parent = nullptr);
 
+		unsigned int GetID();
+
 		std::vector<GameObject*> GetChildren();
 		void AddChild(GameObject* child);
 		void AddChildren(std::vector<GameObject*> children);
 		void RemoveChild(GameObject* child);
+		GameObject* FindChild(unsigned int id);
 
 		Vec2& GetPosition();
 		void SetPosition(Vec2 position);
@@ -85,6 +90,15 @@ namespace Framework
 
 		Vec2 GetForward();
 		b2Body* GetPhysicsBody();
+
+		void AddTag(std::string tag);
+		void RemoveTag(std::string tag);
+		bool HasTag(std::string tag);
+
+		static GameObject* FromID(unsigned int id);
+
+		static std::vector<GameObject*> GetAll();
+		static std::vector<GameObject*> GetTag(std::string tag);
 
 		operator unsigned int() const { return m_ID; }
 		operator std::string() const { return "GameObject[" + std::to_string(m_ID) + "]"; }

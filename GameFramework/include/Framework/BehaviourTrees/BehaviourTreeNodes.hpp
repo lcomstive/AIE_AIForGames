@@ -24,7 +24,26 @@ namespace Framework::BT
 		friend Evaluator;
 		friend BehaviourTree;
 
-		std::unordered_map<std::string, void*>* m_Context;
+		enum class ContextDataType { Integer, Decimal, String, Other };
+		struct ContextData
+		{
+			ContextDataType Type;
+
+			union
+			{
+				void*				Other;
+				double				Decimal;
+				std::string			String;
+				unsigned long long	Integer;
+			};
+
+			ContextData() : Type(ContextDataType::Other), Other(nullptr), Decimal(0), String(""), Integer(0) { }
+			ContextData(const ContextData& other) : Type(other.Type), Other(other.Other), Decimal(other.Decimal), String(other.String), Integer(other.Integer) { }
+			~ContextData() { }
+		};
+
+		std::unordered_map<std::string, ContextData>* m_Context;
+
 	public:
 		BehaviourNode() : m_Context() {}
 		BehaviourNode(const BehaviourNode& other) : m_Context(other.m_Context) { }
@@ -36,10 +55,29 @@ namespace Framework::BT
 		void ClearContext();
 		void ClearContext(std::string name);
 		bool ContextExists(std::string name);
-		void SetContext(std::string name, void* data);
 
 		template<typename T>
-		void SetContext(std::string name, T data) { SetContext(name, (void*)data); }
+		void SetContext(std::string name, T value)
+		{
+			if (!ContextExists(name))
+				m_Context->emplace(name, ContextData());
+
+			ContextData* data = &m_Context->at(name);
+			data->Type = ContextDataType::Other;
+			data->Other = value;
+		}
+
+		void SetContext(std::string name, int value);
+		void SetContext(std::string name, long value);
+		void SetContext(std::string name, short value);
+		void SetContext(std::string name, float value);
+		void SetContext(std::string name, double value);
+		void SetContext(std::string name, long long value);
+		void SetContext(std::string name, std::string value);
+		void SetContext(std::string name, unsigned int value);
+		void SetContext(std::string name, unsigned long value);
+		void SetContext(std::string name, unsigned short value);
+		void SetContext(std::string name, unsigned long long value);
 
 		template<typename T>
 		T GetContext(std::string name)
@@ -47,7 +85,92 @@ namespace Framework::BT
 			if (!ContextExists(name))
 				return T();
 			// Can break something if type is different, but using void* to store data so no way to check for error
-			return (T)m_Context->at(name);
+			return (T)m_Context->at(name).Other;
+		}
+
+		template<typename T>
+		T GetContext(std::string name, T default)
+		{
+			if (!ContextExists(name))
+				return default;
+			// Can break something if type is different, but using void* to store data so no way to check for error
+			return (T)m_Context->at(name).Other;
+		}
+
+		template<>
+		int GetContext(std::string name) { return (int)GetContext<unsigned long long>(name); }
+		template<>
+		int GetContext(std::string name, int default) { return (int)GetContext<unsigned long long>(name, default); }
+
+		template<>
+		long GetContext(std::string name) { return (long)GetContext<unsigned long long>(name); }
+		template<>
+		long GetContext(std::string name, long default) { return (long)GetContext<unsigned long long>(name, default); }
+
+		template<>
+		short GetContext(std::string name) { return (short)GetContext<unsigned long long>(name); }
+		template<>
+		short GetContext(std::string name, short default) { return (short)GetContext<unsigned long long>(name, default); }
+
+		template<>
+		long long GetContext(std::string name) { return (short)GetContext<unsigned long long>(name); }
+		template<>
+		long long GetContext(std::string name, long long default) { return (short)GetContext<unsigned long long>(name, default); }
+
+		template<>
+		unsigned int GetContext(std::string name) { return (short)GetContext<unsigned long long>(name); }
+		template<>
+		unsigned int GetContext(std::string name, unsigned int default) { return (short)GetContext<unsigned long long>(name, default); }
+
+		template<>
+		unsigned long GetContext(std::string name) { return (short)GetContext<unsigned long long>(name); }
+		template<>
+		unsigned long GetContext(std::string name, unsigned long default) { return (short)GetContext<unsigned long long>(name, default); }
+
+		template<>
+		unsigned short GetContext(std::string name) { return (short)GetContext<unsigned long long>(name); }
+		template<>
+		unsigned short GetContext(std::string name, unsigned short default) { return (short)GetContext<unsigned long long>(name, default); }
+
+		template<>
+		unsigned long long GetContext(std::string name) { return GetContext<unsigned long long>(name, 0); }
+		template<>
+		unsigned long long GetContext(std::string name, unsigned long long default)
+		{
+			if (!ContextExists(name))
+				return default;
+			ContextData& data = m_Context->at(name);
+			assert(data.Type == ContextDataType::Integer);
+			return data.Integer;
+		}
+
+		template<>
+		float GetContext(std::string name) { return (float)GetContext<double>(name); }
+		template<>
+		float GetContext(std::string name, float default) { return (float)GetContext<double>(name, default); }
+
+		template<>
+		double GetContext(std::string name) { return GetContext<double>(name, 0); }
+		template<>
+		double GetContext(std::string name, double default)
+		{
+			if (!ContextExists(name))
+				return default;
+			ContextData& data = m_Context->at(name);
+			assert(data.Type == ContextDataType::Decimal);
+			return data.Decimal;
+		}
+
+		template<>
+		std::string GetContext(std::string name) { return GetContext(name, ""); }
+		template<>
+		std::string GetContext(std::string name, std::string default)
+		{
+			if (!ContextExists(name))
+				return default;
+			ContextData& data = m_Context->at(name);
+			assert(data.Type == ContextDataType::String);
+			return data.String;
 		}
 	};
 	typedef BehaviourNode Action;

@@ -64,6 +64,20 @@ namespace Framework
 
 			x = ((cx - origin.x) * c) - ((cy - origin.y) * s) + origin.x;
 			y = ((cx - origin.x) * s) + ((cy - origin.y) * c) + origin.y;
+			
+			/*
+			float c = cos(angle);
+			float s = sin(angle);
+			float cx = x, cy = y;
+
+			x -= origin.x;
+			y -= origin.y;
+			x = fabs(x * c) - y * s;
+			y = fabs(x * s) + y * c;
+			x += origin.x;
+			y += origin.y;
+			*/
+
 			return *this;
 		}
 

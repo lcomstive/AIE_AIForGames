@@ -2,8 +2,8 @@
 
 #include <Framework/GameObjects/AnimatedSprite.hpp>
 
-// #define ASTAR_TEST
-#define BTREE_TEST
+#define ASTAR_TEST
+// #define BTREE_TEST
 
 #ifdef ASTAR_TEST
 #include <Framework/Pathfinding/AStar.hpp>
@@ -31,9 +31,13 @@ class Game
 #endif
 
 #ifdef ASTAR_TEST
+#ifdef ASTAR_GRID_HEXAGON
+	const int GridWidth  = 50;
+	const int GridHeight = 50;
+#else
 	const int GridWidth  = 1000;
 	const int GridHeight = 1000;
-
+#endif
 	const int CellSize = 50;
 	const int CellPadding = 0;
 
@@ -54,4 +58,7 @@ public:
 
 	void Run();
 	void Update();
+
+	void PrePhysicsUpdate();
+	void PostPhysicsUpdate();
 };

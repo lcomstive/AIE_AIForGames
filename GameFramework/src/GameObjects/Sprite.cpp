@@ -14,15 +14,16 @@ void Sprite::DrawSprite(Rectangle view)
 
 	Vec2& size = GetSize();
 	Vec2& position = GetPosition();
+	view.height *= -1.0f;
 	DrawTexturePro(
 		m_Texture,
 		view, // Source Rect
 		// Dest Rect
 		{	
-			position.x,
-			position.y,
-			size.x,
-			size.y
+			-position.x,
+			 position.y,
+			 size.x,
+			 size.y
 		},
 		// Origin
 		{ size.x / 2.0f, size.y / 2.0f },

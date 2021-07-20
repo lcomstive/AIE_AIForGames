@@ -6,7 +6,7 @@ using namespace Framework::BT;
 
 BehaviourTree::BehaviourTree()
 {
-	m_RootNode.m_Context = new std::unordered_map<std::string, void*>();
+	m_RootNode.m_Context = new std::unordered_map<std::string, BehaviourNode::ContextData>();
 }
 
 BehaviourTree::~BehaviourTree() { Clear(); }
