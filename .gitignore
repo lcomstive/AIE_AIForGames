@@ -1,2 +1,11 @@
 # CMake output
 build/
+
+# Microsoft Visual Studio cache
+.vs/
+
+# JetBrains IDE cache
+.idea/
+
+# Mac OS cache
+.DS_Store
