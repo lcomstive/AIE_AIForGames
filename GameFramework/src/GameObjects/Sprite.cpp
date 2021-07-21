@@ -51,4 +51,4 @@ void Sprite::SetView(
 	)
 { View = { xOffset, yOffset, xSize, ySize }; }
 
-void Sprite::SetView(Vector2& offset, Vector2& size) { View = { offset.x, offset.y, size.x, size.y }; }
+void Sprite::SetView(Vec2& offset, Vec2& size) { View = { offset.x, offset.y, size.x, size.y }; }

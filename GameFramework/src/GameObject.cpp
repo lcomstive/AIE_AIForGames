@@ -55,7 +55,7 @@ void GameObject::PrePhysicsUpdate()
 	if (m_PhysicsBody)
 	{
 		if(m_DirtyTransform)
-			m_PhysicsBody->SetTransform(m_Position, -m_Rotation);
+			m_PhysicsBody->SetTransform(m_Position, m_Rotation * -DEG2RAD);
 		m_DirtyTransform = false;
 
 		OnPrePhysicsUpdate();
@@ -69,7 +69,7 @@ void GameObject::PostPhysicsUpdate()
 {
 	if (m_PhysicsBody)
 	{
-		m_Rotation = -m_PhysicsBody->GetAngle();
+		m_Rotation = m_PhysicsBody->GetAngle() * -RAD2DEG;
 		m_Position = m_PhysicsBody->GetPosition();
 
 		OnPostPhysicsUpdate();

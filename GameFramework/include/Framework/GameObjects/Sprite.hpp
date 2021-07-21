@@ -29,7 +29,7 @@ namespace Framework
 			float xSize,
 			float ySize
 		);
-		void SetView(Vector2& offset, Vector2& size);
+		void SetView(Vec2& offset, Vec2& size);
 
 		Texture& GetTexture();
 	};

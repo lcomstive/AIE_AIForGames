@@ -18,7 +18,7 @@ AStar::AStar(float heuristicModifier, std::function<float(AStarCell* cell, AStar
 bool Framework::Pathfinding::CompareAStarCells(AStarCell* a, AStarCell* b) { return a->FScore < b->FScore; }
 
 float AStar::ManhattanHeuristic(AStarCell* cell, AStarCell* end) { return abs(cell->x - end->x) + abs(end->y - end->y); }
-float AStar::EuclideanHeuristic(AStarCell* cell, AStarCell* end) { return sqrt(pow(cell->x - end->x, 2) + pow(cell->y - end->y, 2)); }
+float AStar::EuclideanHeuristic(AStarCell* cell, AStarCell* end) { return sqrt(pow(cell->x - end->x, 2.0f) + pow(cell->y - end->y, 2.0f)); }
 
 bool Find(vector<AStarCell*> set, AStarCell* value)
 {

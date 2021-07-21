@@ -25,15 +25,13 @@ float CanSee::CanSeeRaycastCallback::ReportFixture(b2Fixture* fixture, const b2V
 	return fraction;
 }
 
-bool InFieldOfView(GameObject* a, GameObject* b, float fov)
+bool CanSee::InFieldOfView(GameObject* a, GameObject* b, float fov)
 {
 	Vec2 forward = a->GetForward();
 	Vec2 targetOffset = (b->GetPosition() - a->GetPosition()).Normalized();
 
 	// test angle of forward and offset against FieldOfView
-	float ac = acos(forward.Dot(targetOffset));
-	bool inFOV = ac < fov / 2.0f;
-	return inFOV;
+	return acos(forward.Dot(targetOffset)) < (fov / 2.0f);
 }
 
 BehaviourResult CanSee::Execute(GameObject* go)

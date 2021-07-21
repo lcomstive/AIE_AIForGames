@@ -1,4 +1,5 @@
 #include <Framework/PhysicsWorld.hpp>
+#include <Framework/BehaviourTrees/Actions/CanSee.hpp>
 #include <Framework/BehaviourTrees/Actions/CanSeeTarget.hpp>
 
 #ifndef NDEBUG
@@ -23,15 +24,6 @@ float CanSeeTarget::CanSeeTargetRaycastCallback::ReportFixture(b2Fixture* fixtur
 	// Hit target
 	CanSee = true;
 	return fraction;
-}
-
-bool InFieldOfView(GameObject* a, GameObject* b, float fov)
-{
-	Vec2 forward = a->GetForward();
-	Vec2 targetOffset = (b->GetPosition() - a->GetPosition()).Normalized();
-
-	// test angle of forward and offset against FieldOfView
-	return acos(forward.Dot(targetOffset)) < (fov / 2.0f);
 }
 
 BehaviourResult CanSeeTarget::Execute(GameObject* go)
@@ -65,7 +57,7 @@ BehaviourResult CanSeeTarget::Execute(GameObject* go)
 		DrawLine((int)-(start.x - endFOV.x), (int)(start.y + endFOV.y), (int)-(start.x + endFOV.x), (int)(start.y + endFOV.y), BLUE);
 #endif
 
-		if (!InFieldOfView(go, target, fovRads) ||
+		if (!CanSee::InFieldOfView(go, target, fovRads) ||
 			start.Distance(end) > SightRange)
 			return BehaviourResult::Failure;
 

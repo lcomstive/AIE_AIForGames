@@ -31,5 +31,7 @@ namespace Framework::BT
 
 		virtual std::string GetName() override { return "CanSee"; }
 		virtual BehaviourResult Execute(GameObject* go) override;
+
+		static bool InFieldOfView(GameObject* a, GameObject* b, float fov);
 	};
 }
