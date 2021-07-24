@@ -2,7 +2,7 @@
 #include <Framework/GameObjects/AnimatedSprite.hpp>
 #include <Framework/BehaviourTrees/BehaviourTree.hpp>
 
-class Animal : public Framework::AnimatedSprite
+class Animal : public Framework::Sprite
 {
 	std::unique_ptr<Framework::BehaviourTree> m_BehaviourTree;
 	friend class Game;

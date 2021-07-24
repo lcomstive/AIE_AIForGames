@@ -16,6 +16,7 @@ namespace Framework
 
 		unsigned int m_ID;
 		std::string m_Name;
+		bool m_ShouldDelete = false;
 
 		float m_Rotation;
 		Vec2 m_Size;
@@ -37,6 +38,7 @@ namespace Framework
 
 		void Draw();
 		void Update();
+		void Destroy();
 		void PrePhysicsUpdate();
 		void PostPhysicsUpdate();
 

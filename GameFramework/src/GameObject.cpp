@@ -28,19 +28,38 @@ GameObject::GameObject(string name, GameObject* parent) :
 	m_IDs.emplace(m_ID, this);
 }
 
-GameObject::~GameObject()
-{
-	m_IDs.erase(m_ID);
+GameObject::~GameObject() { Destroy(); }
 
+void GameObject::Destroy()
+{
+	if (m_ShouldDelete)
+		return;
+
+	m_ShouldDelete = true;
+
+	m_IDs.erase(m_ID);
+	m_ID = (unsigned int)-1;
 	for (auto& pair : m_Children)
 		delete pair.second;
+
+	if (m_PhysicsBody)
+#ifndef NDEBUG
+		// while(PhysicsWorld::GetBox2DWorld()->IsLocked())
+#endif
+			PhysicsWorld::GetBox2DWorld()->DestroyBody(m_PhysicsBody);
 }
 
 void GameObject::Update()
 {
 	OnUpdate();
-	for (auto& pair : m_Children)
-		pair.second->Update();
+	auto childrenCopy = m_Children; // To prevent modifying the list we are iterating over
+	for (auto& pair : childrenCopy)
+	{
+		if (pair.second->m_ShouldDelete)
+			m_Children.erase(pair.first);
+		else
+			pair.second->Update();
+	}
 }
 
 void GameObject::Draw()
@@ -55,7 +74,7 @@ void GameObject::PrePhysicsUpdate()
 	if (m_PhysicsBody)
 	{
 		if(m_DirtyTransform)
-			m_PhysicsBody->SetTransform(m_Position, m_Rotation * -DEG2RAD);
+			m_PhysicsBody->SetTransform(m_Position + m_Parent->GetPosition(), (m_Rotation + m_Parent->GetRotation()) * -DEG2RAD);
 		m_DirtyTransform = false;
 
 		OnPrePhysicsUpdate();
@@ -161,9 +180,9 @@ void GameObject::SetPosition(Vec2 position)
 {
 	m_Position = position;
 	m_DirtyTransform = true;
-
+	
 	for (auto& child : m_Children)
-		child.second->SetPosition(child.second->m_Position + m_Position);
+		child.second->m_DirtyTransform = true;
 }
 
 Vec2& GameObject::GetSize() { return m_Size; }
@@ -174,9 +193,9 @@ void GameObject::SetRotation(float rotation)
 {
 	m_Rotation = rotation;
 	m_DirtyTransform = true;
-
+	
 	for (auto& child : m_Children)
-		child.second->SetRotation(child.second->m_Rotation + m_Rotation);
+		child.second->m_DirtyTransform = true;
 }
 
 std::string& GameObject::GetName() { return m_Name; }

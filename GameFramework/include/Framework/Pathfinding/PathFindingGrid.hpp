@@ -60,7 +60,7 @@ namespace Framework::Pathfinding
 					m_Grid[x][y] = T();
 
 					GridNode* node = (GridNode*)&m_Grid[x][y];
-					node->Cell = AStarCell(x, y);
+					node->Cell = AStarCell((float)x, (float)y);
 				}
 			}
 		}

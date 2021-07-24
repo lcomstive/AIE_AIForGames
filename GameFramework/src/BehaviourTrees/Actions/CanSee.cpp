@@ -17,7 +17,7 @@ float CanSee::CanSeeRaycastCallback::ReportFixture(b2Fixture* fixture, const b2V
 		return 0; // Terminate
 
 	GameObject* go = GameObject::FromID((unsigned int)fixture->GetUserData().pointer);
-	if (!go->HasTag(Tag))
+	if (!go || !go->HasTag(Tag))
 		return 0; // Raycast didn't hit our target, terminate
 
 	// Hit target

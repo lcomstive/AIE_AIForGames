@@ -21,6 +21,5 @@ BehaviourResult MoveTowards::Execute(GameObject* go)
 
 	go->SetRotation(rotation * DEG2RAD * 50.0f);
 	go->SetPosition(position + go->GetForward() * Speed * GetFrameTime());
-	// go->SetPosition(position + targetVel * Speed * GetFrameTime());
 	return BehaviourResult::Success;
 }

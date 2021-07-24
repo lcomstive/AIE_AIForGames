@@ -7,10 +7,9 @@ using namespace Framework::Pathfinding;
 /// --- GRID NODES --- ///
 void SquareGridNodeAddNeighbour(AStarCell* cell, int offsetX, int offsetY, Grid<SquareGridNode>* grid)
 {
-	int finalX = cell->x + offsetX;
-	int finalY = cell->y + offsetY;
-	if (finalX < 0 || finalY < 0 ||
-		finalX >= grid->GetWidth() ||
+	unsigned int finalX = (unsigned int)(cell->x + offsetX);
+	unsigned int finalY = (unsigned int)(cell->y + offsetY);
+	if (finalX >= grid->GetWidth() ||
 		finalY >= grid->GetHeight())
 		return;
 
@@ -22,8 +21,8 @@ void SquareGridNodeAddNeighbour(AStarCell* cell, int offsetX, int offsetY, Grid<
 #ifdef SQUARE_GRID_NODE_DIAGONAL
 	if (offsetX != 0 && offsetY != 0)
 	{
-		if (!grid->GetCell(finalX, cell->y)->Traversable ||
-			!grid->GetCell(cell->x, finalY)->Traversable)
+		if (!grid->GetCell(finalX, (unsigned int)cell->y)->Traversable ||
+			!grid->GetCell((unsigned int)cell->x, finalY)->Traversable)
 			return;
 	}
 #endif
@@ -56,16 +55,16 @@ void TriangleGridNode::CalculateNeighbours(void* gridPtr)
 	Cell.Neighbours.clear();
 
 	// Left
-	if (Cell.x > 0) Cell.Neighbours.emplace_back(grid->GetCell(Cell.x - 1, Cell.y));
+	if (Cell.x > 0) Cell.Neighbours.emplace_back(grid->GetCell((unsigned int)Cell.x - 1, (unsigned int)Cell.y));
 
 	// Right
-	if (Cell.x < grid->GetWidth()) Cell.Neighbours.emplace_back(grid->GetCell(Cell.x + 1, Cell.y));
+	if (Cell.x < grid->GetWidth()) Cell.Neighbours.emplace_back(grid->GetCell((unsigned int)Cell.x + 1, (unsigned int)Cell.y));
 
 	// Up or Down
 	int yOffset = OrientedUpwards ? -1 : 1;
 	if ((yOffset < 0 && Cell.y > 0) ||
 		(yOffset > 0 && Cell.y < grid->GetHeight()))
-		Cell.Neighbours.emplace_back(grid->GetCell(Cell.x, Cell.y + yOffset));
+		Cell.Neighbours.emplace_back(grid->GetCell((unsigned int)Cell.x, (unsigned int)Cell.y + yOffset));
 }
 
 void HexGridNodeAddNeighbour(AStarCell* cell, int offsetX, int offsetY, Grid<HexGridNode>* grid)
@@ -73,10 +72,9 @@ void HexGridNodeAddNeighbour(AStarCell* cell, int offsetX, int offsetY, Grid<Hex
 	if ((int)cell->y % 2 != 0)
 		offsetX -= 1;
 
-	int finalX = cell->x + offsetX;
-	int finalY = cell->y + offsetY;
-	if (finalX < 0 || finalY < 0 ||
-		finalX >= grid->GetWidth() ||
+	unsigned int finalX = (unsigned int)(cell->x + offsetX);
+	unsigned int finalY = (unsigned int)(cell->y + offsetY);
+	if (finalX >= grid->GetWidth() ||
 		finalY >= grid->GetHeight())
 		return;
 

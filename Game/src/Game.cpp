@@ -13,8 +13,8 @@ using namespace std;
 using namespace Framework;
 using namespace Framework::BT;
 
-const float Game::ThirstPerSecond = 0.25f;
-const float Game::HungerPerSecond = 0.20f;
+const float Game::ThirstPerSecond = 0.5f;
+const float Game::HungerPerSecond = 0.5f;
 
 // Offsets of the backgroundsheet tileset
 Vec2 BackgroundTileSize = { 16, 16 };
@@ -43,10 +43,13 @@ Game::Game()
 	InitAudioDevice();
 	InitWindow(1280, 720, "Game");
 	SetWindowState(FLAG_WINDOW_RESIZABLE);
-	SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
+
+	SetTargetFPS(60);
+	// SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
 
 	PhysicsWorldArgs args;
 	args.Gravity = { 0, 0 };
+	args.TimeStep = 1.0f / 100.0f;
 	PhysicsWorld::Init(args);
 
 	m_Root = new GameObject("Root");
@@ -63,10 +66,9 @@ Game::Game()
 
 Game::~Game()
 {
-	PhysicsWorld::Destroy();
-	CloseWindow();
-
 	delete m_Root;
+	CloseWindow();
+	PhysicsWorld::Destroy();
 }
 
 void Game::Run()
@@ -124,9 +126,7 @@ void Game::Update()
 		mousePos.x >= 0 && mousePos.x < m_Map.GetWidth() &&
 		mousePos.y >= 0 && mousePos.y < m_Map.GetHeight() &&
 		cell && cell->Traversable)
-	{
 		SpawnRandomCreature(mousePos * GridCellSize);
-	}
 }
 
 void Game::PrePhysicsUpdate() { }
@@ -217,7 +217,6 @@ GameObject* Game::SpawnRandomCreature(Vec2& position)
 
 	creature->AddTag("Creature");
 	creature->SetSize(creatureInfo.Size);
-	creature->SetTexture(creatureInfo.SpriteSheet);
 	creature->SetView(creatureInfo.SpriteOffset, creatureInfo.SpriteSize);
 	creature->SetPosition(position + Vec2{ GridCellSize / 2.0f, GridCellSize / 2.0f });
 
@@ -373,17 +372,11 @@ void Game::CreateMap()
 /// CREATURE INFO ///
 void Game::CreateCreatureInfos()
 {
-	Texture texture = LoadTexture("./assets/Sprites/Onocentaur/Colorful.png");
-
-	CreatureInfo info(texture);
+	CreatureInfo info("./assets/Sprites/Lewis/Slime.jpg");
 	info.Size = { GridCellSize, GridCellSize };
-	info.SpriteSize = { 16, 16 };
+	info.SpriteSize = { 32, 32 };
 
-	for (unsigned int i = 0; i < 25; i++)
-	{
-		info.SpriteOffset = { 0, i * 16.0f };
-		m_CreatureInfos.push_back(info);
-	}
+	m_CreatureInfos.emplace_back(info);
 }
 
 Game::CreatureInfo::CreatureInfo(string filepath) : CreatureInfo(LoadTexture(filepath.c_str())) { m_CreatedTexture = true; }

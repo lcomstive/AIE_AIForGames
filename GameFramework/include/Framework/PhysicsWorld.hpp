@@ -7,8 +7,8 @@ namespace Framework
 {
 	struct PhysicsWorldArgs
 	{
-		Vec2 Gravity = { 0, 0 };
-		float TimeStep = 1.0f / 60.0f;
+		Framework::Vec2 Gravity = { 0, 0 };
+		float TimeStep = 1.0f / 100.0f;
 		unsigned int VelocityIterations = 6;
 		unsigned int PositionIterations = 2;
 	};
