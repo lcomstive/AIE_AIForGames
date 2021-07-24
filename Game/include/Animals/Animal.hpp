@@ -7,6 +7,9 @@ class Animal : public Framework::AnimatedSprite
 	std::unique_ptr<Framework::BehaviourTree> m_BehaviourTree;
 	friend class Game;
 
+	float m_Health, m_Thirst, m_Hunger;
+
+	void Init();
 protected:
 	Framework::BehaviourTree* GetBehaviourTree() { return m_BehaviourTree.get(); }
 

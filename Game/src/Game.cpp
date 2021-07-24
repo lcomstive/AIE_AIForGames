@@ -13,6 +13,9 @@ using namespace std;
 using namespace Framework;
 using namespace Framework::BT;
 
+const float Game::ThirstPerSecond = 0.25f;
+const float Game::HungerPerSecond = 0.20f;
+
 // Offsets of the backgroundsheet tileset
 Vec2 BackgroundTileSize = { 16, 16 };
 

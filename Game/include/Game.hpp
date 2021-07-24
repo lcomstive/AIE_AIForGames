@@ -61,4 +61,7 @@ public:
 
 	void PrePhysicsUpdate();
 	void PostPhysicsUpdate();
+
+	static const float ThirstPerSecond;
+	static const float HungerPerSecond;
 };
