@@ -52,3 +52,7 @@ void Sprite::SetView(
 { View = { xOffset, yOffset, xSize, ySize }; }
 
 void Sprite::SetView(Vec2& offset, Vec2& size) { View = { offset.x, offset.y, size.x, size.y }; }
+
+Rectangle Sprite::GetView() { return View; }
+Vec2 Sprite::GetViewOffset() { return Vec2{ View.x, View.y }; }
+Vec2 Sprite::GetViewSize() { return Vec2{ View.width, View.height }; }

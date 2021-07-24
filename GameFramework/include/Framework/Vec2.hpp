@@ -1,5 +1,5 @@
 #pragma once
-
+#include <string>
 #include <iostream>
 #include <raylib.h>
 #include <box2d/b2_math.h>
@@ -10,143 +10,50 @@ namespace Framework
 	{
 		float x, y;
 
-		Vec2(float x = 0, float y = 0) : x(x), y(y) { }
+		Vec2(float x = 0, float y = 0);
 
-		Vec2 Perpendicular() { return { x, -y }; }
+		float MagnitudeSqr();
+		float Magnitude();
 
-		float Dot(Vec2& other) { return x * other.x + y * other.y; }
+		void Normalize();
+		Vec2 Normalized();
 
-		float MagnitudeSqr() { return x * x + y * y; }
-		float Magnitude() { return sqrt(MagnitudeSqr()); }
+		float Distance(Vec2& other);
+		static float Distance(Vec2& a, Vec2& b);
 
-		void Normalize()
-		{
-			float magnitude = Magnitude();
-			x /= magnitude;
-			y /= magnitude;
-		}
+		float DistanceSqr(Vec2& other);
+		static float DistanceSqr(Vec2& a, Vec2& b);
 
-		Vec2 Normalized()
-		{
-			Vec2 copy(*this);
-			copy.Normalize();
-			return copy;
-		}
+		Vec2 Perpendicular();
+		float Dot(Vec2& other);
+		float Angle(Vec2& other);
 
-		float Distance(Vec2& other) { return (*this - other).Magnitude(); }
-		static float Distance(Vec2& a, Vec2& b) { return (a - b).Magnitude(); }
+		void Reflect(Vec2& normal);
+		Vec2 Reflected(Vec2& normal);
 
-		float DistanceSqr(Vec2& other) { return (*this - other).MagnitudeSqr(); }
-		static float DistanceSqr(Vec2& a, Vec2& b) { return (a - b).MagnitudeSqr(); }
-
-		float Angle(Vec2& other) { return acos(Dot(other) / (Magnitude() * other.Magnitude())); }
-
-		Vec2 Reflected(Vec2& normal) { return -2.0f * Dot(normal) * normal + *this; }
-
-		void Reflect(Vec2& normal) { *this = Reflected(normal); }
-
-		Vec2 Rotate(float angle)
-		{
-			float c = cos(angle);
-			float s = sin(angle);
-			float cx = x, cy = y;
-
-			x = (cx * c) - (cy * s);
-			y = (cx * s) + (cy * c);
-			return *this;
-		}
-
-		Vec2 RotateAround(Vec2& origin, float angle)
-		{
-			float c = cos(angle);
-			float s = sin(angle);
-			float cx = x, cy = y;
-
-			x = ((cx - origin.x) * c) - ((cy - origin.y) * s) + origin.x;
-			y = ((cx - origin.x) * s) + ((cy - origin.y) * c) + origin.y;
-			
-			/*
-			float c = cos(angle);
-			float s = sin(angle);
-			float cx = x, cy = y;
-
-			x -= origin.x;
-			y -= origin.y;
-			x = fabs(x * c) - y * s;
-			y = fabs(x * s) + y * c;
-			x += origin.x;
-			y += origin.y;
-			*/
-
-			return *this;
-		}
+		Vec2 Rotate(float angle);
+		Vec2 RotateAround(Vec2& origin, float angle);
 
 		/// --- OPERATORS --- ///
-		Vec2 operator +(Vec2& other) { return { x + other.x, y + other.y }; }
-		Vec2 operator -(Vec2& other) { return { x - other.x, y - other.y }; }
-		Vec2 operator *(Vec2& other) { return { x * other.x, y * other.y }; }
-		Vec2 operator /(Vec2& other) { return { x / other.x, y / other.y }; }
-		Vec2 operator *(float v) { return { x * v, y * v }; }
-		Vec2 operator /(float v) { return { x / v, y / v }; }
+		Vec2 operator +(Vec2& other);
+		Vec2 operator -(Vec2& other);
+		Vec2 operator *(Vec2& other);
+		Vec2 operator /(Vec2& other);
+		Vec2 operator *(float v);
+		Vec2 operator /(float v);
 
-		Vec2 operator +=(Vec2& other)
-		{
-			x += other.x;
-			y += other.y;
-			return *this;
-		}
-
-		Vec2 operator -=(Vec2& other)
-		{
-			x -= other.x;
-			y -= other.y;
-			return *this;
-		}
-
-		Vec2 operator *=(Vec2& other)
-		{
-			x *= other.x;
-			y *= other.y;
-			return *this;
-		}
-
-		Vec2 operator /=(Vec2& other)
-		{
-			x /= other.x;
-			y /= other.y;
-			return *this;
-		}
-		
-		Vec2 operator *=(float& v)
-		{
-			x *= v;
-			y *= v;
-			return *this;
-		}
-
-		Vec2 operator /=(float& v)
-		{
-			x /= v;
-			y /= v;
-			return *this;
-		}
+		Vec2 operator +=(Vec2& other);
+		Vec2 operator -=(Vec2& other);
+		Vec2 operator *=(Vec2& other);
+		Vec2 operator /=(Vec2& other);
+		Vec2 operator *=(float& v);
+		Vec2 operator /=(float& v);
 
 		// Copy
-		Vec2& operator=(const Vec2& other)
-		{
-			x = other.x;
-			y = other.y;
-			return *this;
-		}
+		Vec2& operator=(const Vec2& other);
 
-		std::ostream& operator <<(std::ostream& os)
-		{
-			os << "(" << x << ", " << y << ")";
-			return os;
-		}
-
-		inline bool operator ==(const Vec2& a) { return a.x == x && a.y == y; }
-		inline bool operator !=(const Vec2& a) { return a.x == x && a.y == y; }
+		inline bool operator ==(const Vec2& a);
+		inline bool operator !=(const Vec2& a);
 
 		/// --- RAYLIB VECTOR --- ///
 		Vec2(Vector2& v) : x(v.x), y(v.y) { }
@@ -156,5 +63,11 @@ namespace Framework
 		Vec2(b2Vec2& v) : x(v.x), y(v.y) { }
 		Vec2(const b2Vec2& v) : x(v.x), y(v.y) { }
 		operator b2Vec2() const { return { x, y }; } // Implicit operator
+
+		/// --- STRING --- ///
+		operator std::string() const { return "(" + std::to_string(x) + ", " + std::to_string(y) + ")"; }
 	};
+
+	// Operator to string (e.g. for std::cout)
+	std::ostream& operator <<(std::ostream& os, const Vec2& v);
 }

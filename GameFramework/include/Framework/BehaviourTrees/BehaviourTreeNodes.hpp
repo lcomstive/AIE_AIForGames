@@ -51,6 +51,7 @@ namespace Framework::BT
 
 		virtual std::string GetName() { return "Node"; }
 		virtual BehaviourResult Execute(GameObject* go) = 0;
+		virtual void OnDebugDraw(GameObject* go) { }
 
 		void ClearContext();
 		void ClearContext(std::string name);
@@ -239,6 +240,7 @@ namespace Framework::BT
 			return child;
 		}
 
+		virtual void OnDebugDraw(GameObject* go) override;
 		virtual BehaviourResult Execute(GameObject* go) = 0;
 		virtual std::string GetName() override { return "Composite"; }
 	};

@@ -7,7 +7,7 @@ BehaviourResult MoveTowards::Execute(GameObject* go)
 	if (GetValuesFromContext)
 	{
 		TargetID = GetContext<unsigned int>("Target", -1);
-		Speed = GetContext("Speed", 100.0f);
+		Speed = GetContext("Speed", Speed <= 0 ? 100.0f : Speed);
 	}
 
 	if (TargetID == (unsigned int)-1)

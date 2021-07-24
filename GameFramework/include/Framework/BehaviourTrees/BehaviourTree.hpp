@@ -10,19 +10,17 @@ namespace Framework
 	class BehaviourTree
 	{
 		BT::Sequence m_RootNode;
-
-		void DrawNode(BT::BehaviourNode* node, unsigned int x, unsigned int y, float zoom);
+		GameObject* m_Parent;
 
 	public:
-		BehaviourTree();
+		BehaviourTree(GameObject* parent);
 		~BehaviourTree();
 
 		void Clear();
-		void Update(GameObject* gameObject);
+		void Update();
+		void DebugDraw();
 
 		template<typename T>
 		T* Add() { return m_RootNode.AddChild<T>(); }
-
-		void Draw(unsigned int nodeIndex, unsigned int x, unsigned int y, float zoom = 1.0f);
 	};
 }

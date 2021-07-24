@@ -66,6 +66,16 @@ Composite::~Composite()
 	m_Children.clear();
 }
 
+void Composite::OnDebugDraw(GameObject* go)
+{
+	auto children = GetChildren();
+	if (children.size() == 0)
+		return;
+	if (PendingChildIndex < 0 || PendingChildIndex >= children.size())
+		PendingChildIndex = 0;
+	GetChildren()[PendingChildIndex]->OnDebugDraw(go);
+}
+
 vector<BehaviourNode*>& Composite::GetChildren() { return m_Children; }
 
 /// --- SEQUENCE --- ///

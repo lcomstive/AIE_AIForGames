@@ -49,19 +49,6 @@ BehaviourResult CanSee::Execute(GameObject* go)
 
 	if (!m_Callback.Started)
 	{
-		Vec2 currentPos = go->GetPosition();
-		float fovRads = FieldOfView * (PI / 180.0f);
-
-#ifndef NDEBUG
-		Vec2 leftFOV = go->GetForward() * SightRange;
-		leftFOV.Rotate(-fovRads / 2.0f);
-		Vec2 rightFOV = go->GetForward() * SightRange;
-		rightFOV.Rotate(fovRads / 2.0f);
-		DrawLine((int)-currentPos.x, (int)currentPos.y, (int)-(currentPos.x + leftFOV.x), (int)(currentPos.y + leftFOV.y), BLUE);
-		DrawLine((int)-currentPos.x, (int)currentPos.y, (int)-(currentPos.x + rightFOV.x), (int)(currentPos.y + rightFOV.y), BLUE);
-		DrawLine((int)-(currentPos.x + leftFOV.x), (int)(currentPos.y + leftFOV.y), (int)-(currentPos.x + rightFOV.x), (int)(currentPos.y + rightFOV.y), BLUE);
-#endif
-
 		// Get closest object
 		float closestDistance = 0.0f;
 		GameObject* closestGO = nullptr;
@@ -71,12 +58,12 @@ BehaviourResult CanSee::Execute(GameObject* go)
 		{
 			if (queryObjects[i]->GetID() == go->GetID())
 				continue;
-			float distance = currentPos.Distance(queryObjects[i]->GetPosition());
+			float distance = go->GetPosition().Distance(queryObjects[i]->GetPosition());
 			if (distance > SightRange)
 				continue; // Out of sight range
 
 			// Test if object is in front, within field of view
-			if (!InFieldOfView(go, queryObjects[i], fovRads))
+			if (!InFieldOfView(go, queryObjects[i], FieldOfView * DEG2RAD))
 				continue;
 
 			if (!closestGO || closestDistance > distance)
@@ -108,7 +95,27 @@ BehaviourResult CanSee::Execute(GameObject* go)
 	if (!m_Callback.Finished)
 		return BehaviourResult::Pending; // Currently raycasting
 
+	m_Callback.Started = false;
+	m_Callback.Finished = false;
+	SetContext("Target", m_Callback.Found ? m_Callback.Found->GetID() : (unsigned int)-1);
+	SetContext("Found", m_Callback.Found ? m_Callback.Found->GetID() : (unsigned int)-1);
+	return m_Callback.Found == nullptr ? BehaviourResult::Failure : BehaviourResult::Success;
+}
+
+void CanSee::OnDebugDraw(GameObject* go)
+{
 #ifndef NDEBUG
+	Vec2 currentPos = go->GetPosition();
+	float fovRads = FieldOfView * (PI / 180.0f);
+
+	Vec2 leftFOV = go->GetForward() * SightRange;
+	leftFOV.Rotate(-fovRads / 2.0f);
+	Vec2 rightFOV = go->GetForward() * SightRange;
+	rightFOV.Rotate(fovRads / 2.0f);
+	DrawLine((int)-currentPos.x, (int)currentPos.y, (int)-(currentPos.x + leftFOV.x), (int)(currentPos.y + leftFOV.y), BLUE);
+	DrawLine((int)-currentPos.x, (int)currentPos.y, (int)-(currentPos.x + rightFOV.x), (int)(currentPos.y + rightFOV.y), BLUE);
+	DrawLine((int)-(currentPos.x + leftFOV.x), (int)(currentPos.y + leftFOV.y), (int)-(currentPos.x + rightFOV.x), (int)(currentPos.y + rightFOV.y), BLUE);
+
 	if (m_Callback.Found)
 	{
 		Vec2 start = go->GetPosition();
@@ -116,10 +123,4 @@ BehaviourResult CanSee::Execute(GameObject* go)
 		DrawLine((int)-start.x, (int)start.y, (int)-end.x, (int)end.y, GREEN);
 	}
 #endif
-
-	m_Callback.Started = false;
-	m_Callback.Finished = false;
-	SetContext("Target", m_Callback.Found ? m_Callback.Found->GetID() : (unsigned int)-1);
-	SetContext("Found", m_Callback.Found ? m_Callback.Found->GetID() : (unsigned int)-1);
-	return m_Callback.Found == nullptr ? BehaviourResult::Failure : BehaviourResult::Success;
 }

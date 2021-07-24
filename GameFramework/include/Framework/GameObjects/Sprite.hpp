@@ -31,6 +31,10 @@ namespace Framework
 		);
 		void SetView(Vec2& offset, Vec2& size);
 
+		Vec2 GetViewSize();
+		Rectangle GetView();
+		Vec2 GetViewOffset();
+
 		Texture& GetTexture();
 	};
 }
