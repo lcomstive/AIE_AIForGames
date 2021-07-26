@@ -6,7 +6,10 @@ using namespace Framework::BT;
 BehaviourResult FindClosest::Execute(GameObject* go)
 {
 	if (GetTargetFromContext)
+	{
+		Sight = GetContext<float>("Sight", 10000.0f);
 		TargetTag = GetContext<string>("TargetTag");
+	}
 
 	vector<GameObject*> queryList = TargetTag.empty() ? GameObject::GetAll() : GameObject::GetTag(TargetTag);
 
@@ -20,7 +23,7 @@ BehaviourResult FindClosest::Execute(GameObject* go)
 	for (unsigned int i = 1; i < queryList.size(); i++)
 	{
 		float distance = queryList[i]->GetPosition().Distance(position);
-		if (distance >= closestDistance)
+		if (distance >= closestDistance || distance >= Sight)
 			continue;
 		closest = queryList[i];
 		closestDistance = distance;

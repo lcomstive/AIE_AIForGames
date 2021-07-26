@@ -7,6 +7,8 @@ using namespace std;
 using namespace Framework;
 using namespace Framework::Pathfinding;
 
+#define FINISH_MAX_ITERATIONS 300
+
 AStar::AStar(float heuristicModifier, std::function<float(AStarCell* cell, AStarCell* end)> heuristic)
 {
 	m_HeuristicModifier = heuristicModifier;
@@ -52,6 +54,22 @@ void AStar::StartSearch(AStarCell* start, AStarCell* end)
 	m_CurrentPath.clear();
 }
 
+void AStar::Finish()
+{
+	int iterations = 0;
+	while (!IsFinished())
+	{
+		Step();
+		iterations++;
+
+		if (iterations >= FINISH_MAX_ITERATIONS)
+		{
+			m_Finished = true;
+			return; // Path could not be found
+		}
+	}
+}
+
 void AStar::Step()
 {
 	if (m_Finished)
@@ -83,35 +101,37 @@ void AStar::Step()
 
 	for (auto& connection : current->Neighbours)
 	{
-		if (!connection.Target || !connection.Target->Traversable)
+		if (!connection || !connection->Traversable)
 			continue; // Invalid target
-		if (Find(m_ClosedList, connection.Target))
+		if (Find(m_ClosedList, connection))
 			continue; // Already checked target for pathing
-		float gscore = current->GScore + max(connection.Cost, 0.0f);
+		float gscore = current->GScore + connection->Cost;
 		float hscore = 0;
 		
 		if (m_HeuristicFunc)
-			hscore = m_HeuristicFunc(connection.Target, m_End);
+			hscore = m_HeuristicFunc(connection, m_End);
 		else
-			hscore = ManhattanHeuristic(connection.Target, m_End);
+			hscore = ManhattanHeuristic(connection, m_End);
 		hscore *= m_HeuristicModifier;
 
 		float fscore = gscore + hscore;
 
-		if (Find(m_ClosedList, connection.Target) && fscore >= connection.Target->FScore)
+		if (Find(m_ClosedList, connection) && fscore >= connection->FScore)
 			continue;
 
-		connection.Target->GScore = gscore;
-		connection.Target->HScore = hscore;
-		connection.Target->FScore = fscore;
-		connection.Target->Previous = current;
+		connection->GScore = gscore;
+		connection->HScore = hscore;
+		connection->FScore = fscore;
+		connection->Previous = current;
 
 		if (fscore > m_LargestFScore)
 			m_LargestFScore = fscore;
+		if (fscore < m_SmallestFScore)
+			m_SmallestFScore = fscore;
 
 		// Haven't visited target yet, add to open list for processing
-		if (!Find(m_OpenList, connection.Target))
-			m_OpenList.emplace_back(connection.Target);
+		if (!Find(m_OpenList, connection))
+			m_OpenList.emplace_back(connection);
 	}
 
 	m_CurrentPath = { m_End };
@@ -119,4 +139,6 @@ void AStar::Step()
 
 bool AStar::IsFinished() { return m_Finished; }
 float AStar::GetLargestFScore() { return m_LargestFScore; }
+float AStar::GetSmallestFScore() { return m_SmallestFScore; }
 vector<AStarCell*> AStar::GetPath() { return m_CurrentPath; }
+bool AStar::IsPathValid() { return m_CurrentPath.size() > 1; }

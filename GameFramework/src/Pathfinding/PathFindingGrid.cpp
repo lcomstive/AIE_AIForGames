@@ -27,7 +27,7 @@ void SquareGridNodeAddNeighbour(AStarCell* cell, int offsetX, int offsetY, Grid<
 	}
 #endif
 
-	cell->Neighbours.emplace_back(AStarConnection(newCell));
+	cell->Neighbours.emplace_back(newCell);
 }
 
 void SquareGridNode::CalculateNeighbours(void* gridPtr)
@@ -80,7 +80,7 @@ void HexGridNodeAddNeighbour(AStarCell* cell, int offsetX, int offsetY, Grid<Hex
 
 	auto newCell = grid->GetCell(finalX, finalY);
 	if (newCell->Traversable)
-		cell->Neighbours.emplace_back(AStarConnection(newCell));
+		cell->Neighbours.emplace_back(newCell);
 }
 
 void HexGridNode::CalculateNeighbours(void* gridPtr)

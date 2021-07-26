@@ -205,6 +205,28 @@ namespace Framework::BT
 		virtual std::string GetName() override { return "Evaluator"; }
 	};
 
+	class Conditional : public BehaviourNode
+	{
+		std::unique_ptr<BehaviourNode> m_Child;
+	public:
+		std::function<bool(GameObject* go, Conditional* caller)> Function;
+
+		template<typename T>
+		T* SetChild()
+		{
+			bool isBehaviourType = std::is_base_of<BT::BehaviourNode, T>::value;
+			assert(isBehaviourType);
+
+			if (m_Child)
+				m_Child.release();
+			m_Child = make_unique<T>();
+			return (T*)m_Child.get();
+		}
+
+		virtual BehaviourResult Execute(GameObject* go) override;
+		virtual std::string GetName() override { return "Conditional"; }
+	};
+
 	class Sequence;
 
 	// Abstract node class with many children behaviours

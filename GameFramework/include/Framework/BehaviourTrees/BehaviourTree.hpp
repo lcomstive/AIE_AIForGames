@@ -9,7 +9,7 @@ namespace Framework
 {
 	class BehaviourTree
 	{
-		BT::Sequence m_RootNode;
+		BT::Selector m_RootNode;
 		GameObject* m_Parent;
 
 	public:
@@ -23,6 +23,6 @@ namespace Framework
 		template<typename T>
 		T* Add() { return m_RootNode.AddChild<T>(); }
 
-		BT::Sequence* Root() { return &m_RootNode; }
+		BT::Selector* Root() { return &m_RootNode; }
 	};
 }

@@ -58,6 +58,14 @@ BehaviourResult Evaluator::Execute(GameObject* go)
 		return m_False ? m_False->Execute(go) : BehaviourResult::Failure;
 }
 
+/// --- CONDITIONAL --- ///
+BehaviourResult Conditional::Execute(GameObject* go)
+{
+	if (!go || !Function)
+		return BehaviourResult::Failure;
+	return Function(go, this) ? BehaviourResult::Success : BehaviourResult::Failure;
+}
+
 /// --- COMPOSITE --- ///
 Composite::~Composite()
 {
@@ -146,25 +154,30 @@ BehaviourResult Selector::Execute(GameObject* go)
 	auto children = GetChildren();
 	if (!go || children.size() == 0)
 		return BehaviourResult::Failure;
-	BehaviourNode* child = children[PendingChildIndex >= 0 ? PendingChildIndex : 0];
+	if (PendingChildIndex < 0 || PendingChildIndex >= children.size())
+		PendingChildIndex = 0;
+	BehaviourNode* child = children[PendingChildIndex];
 
-	unsigned int selectorIndex = 0;
 	while (child)
 	{
-		SetContext("SelectorIndex", selectorIndex++);
+		SetContext("SelectorIndex", PendingChildIndex);
 		auto result = child->Execute(go);
 		switch (result)
 		{
 		case BehaviourResult::Pending: return result;
 		case BehaviourResult::Success: PendingChildIndex = -1; return result;
 		case BehaviourResult::Failure:
-			if (PendingChildIndex >= children.size() - 1)
-				return result;
-			child = children[++PendingChildIndex];
+			if (++PendingChildIndex >= children.size())
+			{
+				child = nullptr;
+				break;
+			}
+			child = children[PendingChildIndex];
 			break;
 		}
 	}
 
+	PendingChildIndex = 0;
 	return BehaviourResult::Failure;
 }
 
@@ -221,18 +234,24 @@ BehaviourResult Inverse::Execute(GameObject* go)
 /// --- LOG DECORATOR --- ///
 BehaviourResult Log::Execute(GameObject* go)
 {
-	auto child = GetChild();
 	cout << "[Node] " << Message << endl;
-	return (go && child) ? child->Execute(go) : BehaviourResult::Success;
+
+	auto child = GetChild();
+	if (go && child)
+		child->Execute(go);
+	return BehaviourResult::Success;
 }
 
 /// --- DYNAMIC LOG DECORATOR --- ///
 BehaviourResult DynamicLog::Execute(GameObject* go)
 {
-	auto child = GetChild();
 	if(Message)
 		cout << "[Node] " << Message(go, this) << endl;
-	return (go && child) ? child->Execute(go) : BehaviourResult::Success;
+
+	auto child = GetChild();
+	if (go && child)
+		child->Execute(go);
+	return BehaviourResult::Success;
 }
 
 /// --- SUCCEEDER --- ///

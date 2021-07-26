@@ -9,15 +9,20 @@
 #include <Framework/BehaviourTrees/Actions/Wait.hpp>
 #include <Framework/BehaviourTrees/Actions/CanSee.hpp>
 #include <Framework/BehaviourTrees/Actions/FindPath.hpp>
+#include <Framework/BehaviourTrees/Actions/SetValue.hpp>
 #include <Framework/BehaviourTrees/Actions/MoveTowards.hpp>
+#include <Framework/BehaviourTrees/Actions/CallFunction.hpp>
 #include <Framework/BehaviourTrees/Actions/NavigatePath.hpp>
+#include <Framework/BehaviourTrees/Actions/CanSeeTarget.hpp>
+#include <Framework/BehaviourTrees/Actions/FindClosestNavigatable.hpp>
 
 using namespace std;
 using namespace Framework;
 using namespace Framework::BT;
 
-const float Game::ThirstPerSecond = 0.5f;
-const float Game::HungerPerSecond = 0.5f;
+const float Game::ThirstPerSecond = 0.02f;
+const float Game::HungerPerSecond = 0.05f;
+const float Game::HealthDecayPerSecond = 5.0f;
 
 // Offsets of the backgroundsheet tileset
 Vec2 BackgroundTileSize = { 16, 16 };
@@ -95,10 +100,22 @@ void Game::Run()
 		m_Root->Draw();
 
 		// Draw debug physics colliders
-#ifndef NDEBUG
 		PhysicsWorld::GetBox2DWorld()->DebugDraw();
-#endif
 
+#ifndef NDEBUG
+		/// TEMP ///
+		for (unsigned int x = 0; x < m_PathfindingGrid->GetWidth(); x++)
+		{
+			for (unsigned int y = 0; y < m_PathfindingGrid->GetHeight(); y++)
+			{
+				auto cell = m_PathfindingGrid->GetCell(x, y);
+				if (!cell->Traversable)
+					DrawRectangle(x * GridCellSize, y * GridCellSize, 10, 10, RED);
+				DrawText(to_string((unsigned int)cell->Cost).c_str(), x * GridCellSize, y * GridCellSize, 10, PINK);
+			}
+		}
+		/// TEMP ///
+#endif
 
 		EndMode2D();
 
@@ -124,7 +141,7 @@ void Game::Update()
 	Vec2 mousePos = (Vec2)GetScreenToWorld2D(GetMousePosition(), m_Camera) / GridCellSize;
 	mousePos.x = floorf(mousePos.x);
 	mousePos.y = floorf(mousePos.y);
-	auto cell = m_PathfindingGrid->GetCell(mousePos.x, mousePos.y);
+	auto cell = m_PathfindingGrid->GetCell((unsigned int)mousePos.x, (unsigned int)mousePos.y);
 	if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) &&
 		mousePos.x >= 0 && mousePos.x < m_Map.GetWidth()  &&
 		mousePos.y >= 0 && mousePos.y < m_Map.GetHeight() &&
@@ -137,9 +154,9 @@ void Game::PostPhysicsUpdate() { }
 
 void Game::DrawUI()
 {
-#ifndef NDEBUG
+// #ifndef NDEBUG
 	DrawFPS(10, 10);
-#endif
+// #endif
 }
 
 int main()
@@ -222,9 +239,16 @@ GameObject* Game::SpawnRandomCreature(Vec2 position)
 	creature->AddTag("Creature");
 	creature->SetSize(creatureInfo.Size);
 	creature->SetView(creatureInfo.SpriteOffset, creatureInfo.SpriteSize);
-	creature->SetPosition(position /* + Vec2{GridCellSize / 2.0f, GridCellSize / 2.0f } */);
+	creature->SetPosition(position);
 
 	creature->GeneratePhysicsBody();
+
+	creature->SetFoodClass(creatureInfo.FoodSource);
+	FoodClass foodClass = creatureInfo.FoodSource;
+	if (foodClass == FoodClass::Carnivore || foodClass == FoodClass::Omnivore)
+		creature->AddTag("Predator");
+	else
+		creature->AddTag("PassiveCreature");
 	
 	m_Root->AddChild(creature);
 	m_Creatures.push_back(creature);
@@ -232,6 +256,7 @@ GameObject* Game::SpawnRandomCreature(Vec2 position)
 	creature->GetBehaviourTree()->Root()->SetContext("CellSize", GridCellSize);
 
 	// Behaviour Tree
+	/*
 	auto canSee = creature->GetBehaviourTree()->Add<CanSee>();
 	canSee->TargetTag = "Creature";
 	canSee->SightRange = 150.0f;
@@ -243,9 +268,112 @@ GameObject* Game::SpawnRandomCreature(Vec2 position)
 
 	auto moveTowards = creature->GetBehaviourTree()->Add<NavigatePath>();
 	moveTowards->Speed = 50.0f;
+	*/
+
+	// Check for predators and flee
+	if (foodClass == FoodClass::Herbivore)
+	{
+		auto predatorCheck = creature->GetBehaviourTree()->Add<Sequence>();
+		auto predatorFoundClosest = predatorCheck->AddChild<FindClosestNavigatable>();
+		predatorFoundClosest->TargetTags = { "Predator" };
+		predatorFoundClosest->Sight = 50.0f;
+		predatorFoundClosest->CopyGrid(m_PathfindingGrid.get());
+		// Check that predator was found
+		predatorCheck->AddChild<Conditional>()->Function = [](GameObject* go, Conditional* caller) { return caller->ContextExists("Found"); };
+		predatorCheck->AddChild<Log>()->Message = "FLEE!!";
+		// TODO: Implement fleeing behaviour
+	}
+
+	// If thirsty, find closest water and navigate to it
+	auto waterCheck = creature->GetBehaviourTree()->Add<Sequence>();
+	waterCheck->AddChild<Conditional>()->Function = [](GameObject* go, Conditional* caller) { return ((Animal*)go)->GetThirst() >= 0.65f; };
+	waterCheck->AddChild<Log>()->Message = "Checking for water source...";
+	auto waterFindClosest = waterCheck->AddChild<FindClosestNavigatable>();
+	waterFindClosest->TargetTags = { "WaterSource" };
+	waterFindClosest->Sight = 10000.0f;
+	waterFindClosest->CopyGrid(m_PathfindingGrid.get());
+	waterCheck->AddChild<CallFunction>()->Function = [](GameObject* go, CallFunction* caller)
+	{
+		if (!caller->ContextExists("Path"))
+			return false;
+		auto path = caller->GetContext<vector<Pathfinding::AStarCell*>>("Path");
+		cout << "Path: " << path.size() << endl;
+		if (!path.empty())
+			path.erase(path.end() - 1);
+		caller->SetContext("Path", path);
+		cout << "Path: " << path.size() << endl;
+		return true;
+	};
+	waterCheck->AddChild<Log>()->Message = "Found path to water source, navigating...";
+	auto waterNavPath = waterCheck->AddChild<NavigatePath>();
+	waterNavPath->UpdatePathEachFrame = true;
+	waterNavPath->Speed = creatureInfo.Speed;
+	waterCheck->AddChild<Log>()->Message = "Navigated to water source!";
+	waterCheck->AddChild<CallFunction>()->Function = [](GameObject* go, CallFunction* caller) { ((Animal*)go)->SetThirst(0.0f); return true; };
+	waterCheck->AddChild<Log>()->Message = "Drunk water!";
+	
+	// If hungry, find closest food source and navigate to it
+	auto hungerCheck = creature->GetBehaviourTree()->Add<Sequence>();
+	hungerCheck->AddChild<Conditional>()->Function = [](GameObject* go, Conditional* caller) { return ((Animal*)go)->GetHunger() >= 0.4f; };
+	hungerCheck->AddChild<Log>()->Message = "Checking for hunger source...";
+	auto hungerFindClosest = hungerCheck->AddChild<FindClosestNavigatable>();
+
+	hungerFindClosest->TargetTags = {};
+	if(foodClass == FoodClass::Herbivore || foodClass == FoodClass::Omnivore)
+		hungerFindClosest->TargetTags.emplace_back("HerbivoreFood");
+	if (foodClass == FoodClass::Carnivore || foodClass == FoodClass::Omnivore)
+	{
+		hungerFindClosest->TargetTags.emplace_back("CarnivoreFood");
+		hungerFindClosest->TargetTags.emplace_back("PassiveCreature");
+	}
+
+	hungerFindClosest->Sight = 10000.0f;
+	hungerFindClosest->CopyGrid(m_PathfindingGrid.get());
+	hungerCheck->AddChild<CallFunction>()->Function = [](GameObject* go, CallFunction* caller)
+	{
+		if (!caller->ContextExists("Path"))
+			return false;
+		auto path = caller->GetContext<vector<Pathfinding::AStarCell*>>("Path");
+		cout << "Path: " << path.size() << endl;
+		if (!path.empty())
+			path.erase(path.end() - 1);
+		caller->SetContext("Path", path);
+		cout << "Path: " << path.size() << endl;
+		return true;
+	};
+	hungerCheck->AddChild<Log>()->Message = "Found path to hunger source, navigating...";
+	auto hungerNavPath = hungerCheck->AddChild<NavigatePath>();
+	hungerNavPath->UpdatePathEachFrame = true;
+	hungerNavPath->Speed = creatureInfo.Speed;
+	hungerCheck->AddChild<Log>()->Message = "Navigated to hunger source!";
+	hungerCheck->AddChild<CallFunction>()->Function = [](GameObject* go, CallFunction* caller)
+	{
+		unsigned int targetID = caller->GetContext("Target", -1);
+		GameObject* target = GameObject::FromID(targetID);
+		if (!target)
+			return false;
+		Animal* goAnimal = (Animal*)go;
+		Animal* targetAnimal = dynamic_cast<Animal*>(target);
+		if (targetAnimal)
+		{
+			targetAnimal->SetHealth(targetAnimal->GetHealth() - 25);
+			goAnimal->SetHunger(goAnimal->GetHunger() - 0.2f);
+			return true;
+		}
+		else
+			goAnimal->SetHunger(0.0f); // Source of food that is (probably) not alive
+	};
+	hungerCheck->AddChild<Log>()->Message = "Ate food!";
 
 #ifndef NDEBUG
-	cout << "Created creature @ " << creature->GetPosition() << " " << (creature->GetPosition() / GridCellSize) << endl;
+	cout << "Created creature @ " << creature->GetPosition() << " " << (creature->GetPosition() / GridCellSize);
+	switch (foodClass)
+	{
+	default:
+	case FoodClass::Omnivore: cout << " [Omnivore]" << endl; break;
+	case FoodClass::Herbivore: cout << " [Herbivore]" << endl; break;
+	case FoodClass::Carnivore: cout << " [Carnivore]" << endl; break;
+	}
 #endif
 	return creature;
 }
@@ -314,8 +442,9 @@ void Game::CreateMap()
 			{ { 697, 170 } }
 		});
 
-	// Background
-	m_CharacterSheet = LoadTexture("./assets/Sprites/PixelNauta/slime-sheet.png");
+	// Pre-load textures
+	m_SlimeSpriteSheet = LoadTexture("./assets/Sprites/PixelNauta/slime-sheet.png");
+	m_SkeletonSpriteSheet = LoadTexture("./assets/Sprites/JesseM/Skeleton Idle.png");
 	m_BackgroundSheet = LoadTexture("./assets/Sprites/Kenney/Roguelike/Spritesheet/roguelikeSheet_transparent.png");
 
 	unsigned int mapWidth = m_Map.GetWidth();
@@ -323,6 +452,13 @@ void Game::CreateMap()
 
 	// Create A* grid
 	m_PathfindingGrid = make_unique<PathfindingGrid>(mapWidth, mapHeight);
+
+	const unordered_map<char, string> CellTags =
+	{
+		{ 'E', "WaterSource"   },
+		{ 'F', "HerbivoreFood" },
+		{ 'B', "HerbivoreFood" }
+	};
 
 	auto background = new GameObject("Background");
 	for (unsigned int x = 0; x < mapWidth; x++)
@@ -336,6 +472,7 @@ void Game::CreateMap()
 
 			// For setting pathfinding properties
 			auto cell = m_PathfindingGrid->GetCell(x, y - 1);
+			cell->Traversable = true;
 
 			// Create tile
 			auto foreground = AddBackgroundTile(x, y, tileChar);
@@ -351,26 +488,36 @@ void Game::CreateMap()
 				backgroundTile->AddChild(foreground);
 				foreground = backgroundTile;
 
-				if (tileChar == '-' || tileChar == 'B') // Raycast hittable tiles
-					foreground->GeneratePhysicsBody(false);
-
-				if(tileChar != 'F')
+				if (tileChar == '-')
+				{
 					cell->Traversable = false;
+					foreground->GeneratePhysicsBody(false); // Raycast hittable tiles
+				}
+				else
+					cell->Cost = 3;
+
+				if (CellTags.find(tileChar) != CellTags.end())
+					foreground->AddTag(CellTags.at(tileChar));
 				break;
 			}
 			case 'E':
 			{
-				cell->Traversable = false;
 				delete foreground;
 
 				foreground = AddBackgroundTileWaterEdge(x, y);
 				background->AddChild(foreground);
+
+				if (CellTags.find(tileChar) != CellTags.end())
+					foreground->AddTag(CellTags.at(tileChar));
 				continue;
 			}
 			case 'W':
 			{
 				cell->Traversable = false;
 				break;
+
+				if (CellTags.find(tileChar) != CellTags.end())
+					foreground->AddTag(CellTags.at(tileChar));
 			}
 			}
 
@@ -383,21 +530,38 @@ void Game::CreateMap()
 /// CREATURE INFO ///
 void Game::CreateCreatureInfos()
 {
-	CreatureInfo info(m_CharacterSheet);
+	/// --- SLIME --- ///
+	CreatureInfo info(m_SlimeSpriteSheet);
 	info.Size = { GridCellSize, GridCellSize };
 	info.SpriteSize = { 32, 32 };
 	info.MaxFrames = 4;
+	info.Speed = 15.0f;
 	info.SpriteOffset = { 0, 5 * 32 };
+	info.FoodSource = FoodClass::Herbivore;
 	m_CreatureInfos.emplace_back(info);
+
+	/// --- SKELETON --- ///
+	/*
+	info = CreatureInfo(m_SkeletonSpriteSheet);
+	info.Size = { GridCellSize, GridCellSize };
+	info.SpriteSize = { 24, 32 };
+	info.MaxFrames = 11;
+	info.Speed = 25.0f;
+	info.FoodSource = FoodClass::Carnivore; // They eat slimes! *surprised pikachu*
+	m_CreatureInfos.emplace_back(info);
+	*/
 }
 
 Game::CreatureInfo::CreatureInfo(string filepath) : CreatureInfo(LoadTexture(filepath.c_str())) { m_CreatedTexture = true; }
 Game::CreatureInfo::CreatureInfo(Texture& texture) :
+	Speed(10),
 	Size(1, 1),
+	MaxFrames(1),
 	SpriteSize(1, 1),
 	SpriteOffset(0, 0),
 	SpriteSheet(texture),
-	m_CreatedTexture(false)
+	m_CreatedTexture(false),
+	FoodSource(FoodClass::Herbivore)
 	{ }
 
 Game::CreatureInfo::~CreatureInfo()

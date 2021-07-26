@@ -38,9 +38,10 @@ BehaviourResult NavigatePath::Execute(GameObject* go)
 	}
 
 	Vec2 direction = difference.Normalized();
-	go->SetPosition(go->GetPosition() + direction * Speed * GetFrameTime());
+	float speed = Speed / m_Path[0]->Cost;
+	go->SetPosition(go->GetPosition() + direction * speed * GetFrameTime());
 
-	return BehaviourResult::Pending;
+	return UpdatePathEachFrame ? BehaviourResult::Failure : BehaviourResult::Pending;
 }
 
 void NavigatePath::OnDebugDraw(GameObject* go)

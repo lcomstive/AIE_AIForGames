@@ -14,7 +14,9 @@ class Game
 {
 	struct CreatureInfo
 	{
+		float Speed;
 		Texture SpriteSheet;
+		FoodClass FoodSource;
 		Framework::Vec2 Size;
 		unsigned int MaxFrames;
 		Framework::Vec2 SpriteSize;
@@ -43,8 +45,9 @@ class Game
 	std::unique_ptr<PathfindingGrid> m_PathfindingGrid;
 
 	// Background Tiles
-	Texture m_CharacterSheet;
 	Texture m_BackgroundSheet;
+	Texture m_SlimeSpriteSheet;
+	Texture m_SkeletonSpriteSheet;
 
 	void CreateMap();
 	void CreateCreatureInfos();
@@ -66,4 +69,5 @@ public:
 
 	static const float ThirstPerSecond;
 	static const float HungerPerSecond;
+	static const float HealthDecayPerSecond;
 };

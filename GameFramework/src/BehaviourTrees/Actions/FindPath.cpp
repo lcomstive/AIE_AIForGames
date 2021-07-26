@@ -12,7 +12,7 @@ void FindPath::CopyGrid(SquareGrid* grid)
 
 	m_Grid = new Grid<SquareGridNode>(grid->GetWidth(), grid->GetHeight());
 	for (unsigned int x = 0; x < grid->GetWidth(); x++)
-		for (unsigned int y = 0; y < grid->GetHeight(); y++)
+		for (unsigned int y = 1; y < grid->GetHeight(); y++)
 			m_Grid->GetCell(x, y)->Traversable = grid->GetCell(x, y)->Traversable;
 
 	m_Grid->RefreshNodes();
@@ -20,6 +20,9 @@ void FindPath::CopyGrid(SquareGrid* grid)
 
 BehaviourResult FindPath::Execute(GameObject* go)
 {
+	if (!m_Grid)
+		return BehaviourResult::Failure;
+
 	if (!m_Started)
 	{
 		float cellSize = GetContext("CellSize", 1.0f);
@@ -33,6 +36,12 @@ BehaviourResult FindPath::Execute(GameObject* go)
 		Vec2 endPos = target->GetPosition() / cellSize;
 		endPos.x = floorf(endPos.x);
 		endPos.y = floorf(endPos.y);
+
+		if (startPos.x == endPos.x && startPos.y == endPos.y)
+		{
+			SetContext("Path", vector<AStarCell*>());
+			return BehaviourResult::Success; // Already there! :)
+		}
 
 		cout << "{" << go->GetID() << "}" << go->GetPosition() << startPos << " is pathfinding to {" << targetID << "}" << endPos << target->GetPosition() << endl;
 		if (!target)
@@ -53,10 +62,10 @@ BehaviourResult FindPath::Execute(GameObject* go)
 
 		SetContext("Path", m_AStar.GetPath());
 
-		cout << "STEPPED A*" << endl;
 		return BehaviourResult::Pending;
 	}
 
 	m_Started = false; // Finished
-	return BehaviourResult::Success;
+	SetContext("Path", m_AStar.GetPath());
+	return m_AStar.GetPath().size() > 1 ? BehaviourResult::Success : BehaviourResult::Failure;
 }
