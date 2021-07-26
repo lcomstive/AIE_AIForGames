@@ -17,9 +17,11 @@ BehaviourResult MoveTowards::Execute(GameObject* go)
 	Vec2 position = go->GetPosition();
 	Vec2 targetVel = (target->GetPosition() - position).Normalized();
 
+	/*
 	float rotation = atan2(targetVel.x, targetVel.y);
+	go->SetRotation(rotation * 50.0f);
+	*/
 
-	go->SetRotation(rotation * DEG2RAD * 50.0f);
 	go->SetPosition(position + go->GetForward() * Speed * GetFrameTime());
 	return BehaviourResult::Success;
 }

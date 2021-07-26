@@ -1,9 +1,10 @@
 #pragma once
 #include <vector>
 #include <cassert>
+#include <Framework/Vec2.hpp>
 #include <Framework/Pathfinding/AStar.hpp>
 
-#define SQUARE_GRID_NODE_DIAGONAL
+// #define SQUARE_GRID_NODE_DIAGONAL
 
 namespace Framework::Pathfinding
 {
@@ -96,10 +97,26 @@ namespace Framework::Pathfinding
 
 		AStarCell* GetCell(unsigned int x, unsigned int y)
 		{
-			if (x >= m_Width)  x = m_Width - 1;
+			if (x >= m_Width)  x = m_Width  - 1;
 			if (y >= m_Height) y = m_Height - 1;
 
 			return &((GridNode*)&m_Grid[x][y])->Cell;
+		}
+		
+		T* GetNode(Vec2 pos)
+		{
+			if (pos.x >= m_Width)  pos.x = m_Width  - 1.0f;
+			if (pos.y >= m_Height) pos.y = m_Height - 1.0f;
+
+			return &m_Grid[(unsigned int)pos.x][(unsigned int)pos.y];
+		}
+
+		AStarCell* GetCell(Vec2 pos)
+		{
+			if (pos.x >= m_Width)  pos.x = m_Width - 1.0f;
+			if (pos.y >= m_Height) pos.y = m_Height - 1.0f;
+
+			return &((GridNode*)&m_Grid[(unsigned int)pos.x][(unsigned int)pos.y])->Cell;
 		}
 
 		unsigned int GetWidth() { return m_Width; }

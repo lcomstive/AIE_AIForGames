@@ -26,6 +26,7 @@ BehaviourResult FindClosest::Execute(GameObject* go)
 		closestDistance = distance;
 	}
 
+	SetContext("Target", closest->GetID());
 	SetContext("Found", closest->GetID());
 	return BehaviourResult::Success;
 }

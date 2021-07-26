@@ -88,7 +88,7 @@ BehaviourResult CanSee::Execute(GameObject* go)
 		PhysicsWorld::GetBox2DWorld()->RayCast(&m_Callback, start, end);
 
 #ifndef NDEBUG
-		DrawLine((int)-start.x, (int)start.y, (int)-end.x, (int)end.y, RED);
+		DrawLine((int)start.x, (int)start.y, (int)end.x, (int)end.y, RED);
 #endif
 	}
 
@@ -106,21 +106,21 @@ void CanSee::OnDebugDraw(GameObject* go)
 {
 #ifndef NDEBUG
 	Vec2 currentPos = go->GetPosition();
-	float fovRads = FieldOfView * (PI / 180.0f);
+	float fovRads = FieldOfView * DEG2RAD;
 
 	Vec2 leftFOV = go->GetForward() * SightRange;
-	leftFOV.Rotate(-fovRads / 2.0f);
+	leftFOV.Rotate(fovRads / 2.0f);
 	Vec2 rightFOV = go->GetForward() * SightRange;
-	rightFOV.Rotate(fovRads / 2.0f);
-	DrawLine((int)-currentPos.x, (int)currentPos.y, (int)-(currentPos.x + leftFOV.x), (int)(currentPos.y + leftFOV.y), BLUE);
-	DrawLine((int)-currentPos.x, (int)currentPos.y, (int)-(currentPos.x + rightFOV.x), (int)(currentPos.y + rightFOV.y), BLUE);
-	DrawLine((int)-(currentPos.x + leftFOV.x), (int)(currentPos.y + leftFOV.y), (int)-(currentPos.x + rightFOV.x), (int)(currentPos.y + rightFOV.y), BLUE);
+	rightFOV.Rotate(-fovRads / 2.0f);
+	DrawLine((int)currentPos.x, (int)currentPos.y, (int)(currentPos.x + leftFOV.x), (int)(currentPos.y + leftFOV.y), BLUE);
+	DrawLine((int)currentPos.x, (int)currentPos.y, (int)(currentPos.x + rightFOV.x), (int)(currentPos.y + rightFOV.y), BLUE);
+	DrawLine((int)(currentPos.x + leftFOV.x), (int)(currentPos.y + leftFOV.y), (int)(currentPos.x + rightFOV.x), (int)(currentPos.y + rightFOV.y), BLUE);
 
 	if (m_Callback.Found)
 	{
 		Vec2 start = go->GetPosition();
 		Vec2 end = m_Callback.Found->GetPosition();
-		DrawLine((int)-start.x, (int)start.y, (int)-end.x, (int)end.y, GREEN);
+		DrawLine((int)start.x, (int)start.y, (int)end.x, (int)end.y, GREEN);
 	}
 #endif
 }

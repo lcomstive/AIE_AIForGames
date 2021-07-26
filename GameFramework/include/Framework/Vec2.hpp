@@ -39,15 +39,28 @@ namespace Framework
 		Vec2 operator -(Vec2& other);
 		Vec2 operator *(Vec2& other);
 		Vec2 operator /(Vec2& other);
+		Vec2 operator *(int v);
+		Vec2 operator /(int v);
 		Vec2 operator *(float v);
 		Vec2 operator /(float v);
+		Vec2 operator *(double v);
+		Vec2 operator /(double v);
+		Vec2 operator *(unsigned int v);
+		Vec2 operator /(unsigned int v);
 
 		Vec2 operator +=(Vec2& other);
 		Vec2 operator -=(Vec2& other);
 		Vec2 operator *=(Vec2& other);
 		Vec2 operator /=(Vec2& other);
+
+		Vec2 operator *=(int& v);
+		Vec2 operator /=(int& v);
 		Vec2 operator *=(float& v);
 		Vec2 operator /=(float& v);
+		Vec2 operator *=(double & v);
+		Vec2 operator /=(double & v);
+		Vec2 operator *=(unsigned int& v);
+		Vec2 operator /=(unsigned int& v);
 
 		// Copy
 		Vec2& operator=(const Vec2& other);

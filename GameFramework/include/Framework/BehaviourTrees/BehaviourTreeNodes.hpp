@@ -1,4 +1,5 @@
 #pragma once
+#include <any>
 #include <vector>
 #include <memory>
 #include <string>
@@ -27,18 +28,11 @@ namespace Framework::BT
 		enum class ContextDataType { Integer, Decimal, String, Other };
 		struct ContextData
 		{
+			std::any Data;
 			ContextDataType Type;
 
-			union
-			{
-				void*				Other;
-				double				Decimal;
-				std::string			String;
-				unsigned long long	Integer;
-			};
-
-			ContextData() : Type(ContextDataType::Other), Other(nullptr) { }
-			ContextData(const ContextData& other) : Type(other.Type), Other(other.Other) { }
+			ContextData() : Type(ContextDataType::Other), Data() { }
+			ContextData(const ContextData& other) : Type(other.Type), Data(other.Data) { }
 			~ContextData() { }
 		};
 
@@ -65,7 +59,7 @@ namespace Framework::BT
 
 			ContextData* data = &m_Context->at(name);
 			data->Type = ContextDataType::Other;
-			data->Other = value;
+			data->Data = value;
 		}
 
 		void SetContext(std::string name, int value);
@@ -86,7 +80,7 @@ namespace Framework::BT
 			if (!ContextExists(name))
 				return T();
 			// Can break something if type is different, but using void* to store data so no way to check for error
-			return (T)m_Context->at(name).Other;
+			return std::any_cast<T>(m_Context->at(name).Data);
 		}
 
 		template<typename T>
@@ -95,7 +89,7 @@ namespace Framework::BT
 			if (!ContextExists(name))
 				return defaultValue;
 			// Can break something if type is different, but using void* to store data so no way to check for error
-			return (T)m_Context->at(name).Other;
+			return std::any_cast<T>(m_Context->at(name).Data);
 		}
 
 		template<>
@@ -114,24 +108,24 @@ namespace Framework::BT
 		short GetContext(std::string name, short defaultValue) { return (short)GetContext<unsigned long long>(name, defaultValue); }
 
 		template<>
-		long long GetContext(std::string name) { return (short)GetContext<unsigned long long>(name); }
+		long long GetContext(std::string name) { return (long long)GetContext<unsigned long long>(name); }
 		template<>
-		long long GetContext(std::string name, long long defaultValue) { return (short)GetContext<unsigned long long>(name, defaultValue); }
+		long long GetContext(std::string name, long long defaultValue) { return (long long)GetContext<unsigned long long>(name, defaultValue); }
 
 		template<>
-		unsigned int GetContext(std::string name) { return (short)GetContext<unsigned long long>(name); }
+		unsigned int GetContext(std::string name) { return (unsigned int)GetContext<unsigned long long>(name); }
 		template<>
-		unsigned int GetContext(std::string name, unsigned int defaultValue) { return (short)GetContext<unsigned long long>(name, defaultValue); }
+		unsigned int GetContext(std::string name, unsigned int defaultValue) { return (unsigned int)GetContext<unsigned long long>(name, defaultValue); }
 
 		template<>
-		unsigned long GetContext(std::string name) { return (short)GetContext<unsigned long long>(name); }
+		unsigned long GetContext(std::string name) { return (unsigned long)GetContext<unsigned long long>(name); }
 		template<>
-		unsigned long GetContext(std::string name, unsigned long defaultValue) { return (short)GetContext<unsigned long long>(name, defaultValue); }
+		unsigned long GetContext(std::string name, unsigned long defaultValue) { return (unsigned long)GetContext<unsigned long long>(name, defaultValue); }
 
 		template<>
-		unsigned short GetContext(std::string name) { return (short)GetContext<unsigned long long>(name); }
+		unsigned short GetContext(std::string name) { return (unsigned short)GetContext<unsigned long long>(name); }
 		template<>
-		unsigned short GetContext(std::string name, unsigned short defaultValue) { return (short)GetContext<unsigned long long>(name, defaultValue); }
+		unsigned short GetContext(std::string name, unsigned short defaultValue) { return (unsigned short)GetContext<unsigned long long>(name, defaultValue); }
 
 		template<>
 		unsigned long long GetContext(std::string name) { return GetContext<unsigned long long>(name, 0); }
@@ -142,7 +136,7 @@ namespace Framework::BT
 				return defaultValue;
 			ContextData& data = m_Context->at(name);
 			assert(data.Type == ContextDataType::Integer);
-			return data.Integer;
+			return std::any_cast<unsigned long long>(data.Data);
 		}
 
 		template<>
@@ -159,7 +153,7 @@ namespace Framework::BT
 				return defaultValue;
 			ContextData& data = m_Context->at(name);
 			assert(data.Type == ContextDataType::Decimal);
-			return data.Decimal;
+			return std::any_cast<double>(data.Data);
 		}
 
 		template<>
@@ -171,7 +165,7 @@ namespace Framework::BT
 				return defaultValue;
 			ContextData& data = m_Context->at(name);
 			assert(data.Type == ContextDataType::String);
-			return data.String;
+			return std::any_cast<std::string>(data.Data);
 		}
 	};
 	typedef BehaviourNode Action;

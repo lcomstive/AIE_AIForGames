@@ -66,8 +66,14 @@ Vec2 Vec2::operator +(Vec2& other) { return { x + other.x, y + other.y }; }
 Vec2 Vec2::operator -(Vec2& other) { return { x - other.x, y - other.y }; }
 Vec2 Vec2::operator *(Vec2& other) { return { x * other.x, y * other.y }; }
 Vec2 Vec2::operator /(Vec2& other) { return { x / other.x, y / other.y }; }
+Vec2 Vec2::operator *(int v) { return { x * v, y * v }; }
+Vec2 Vec2::operator /(int v) { return { x / v, y / v }; }
 Vec2 Vec2::operator *(float v) { return { x * v, y * v }; }
 Vec2 Vec2::operator /(float v) { return { x / v, y / v }; }
+Vec2 Vec2::operator *(unsigned int v) { return { x * v, y * v }; }
+Vec2 Vec2::operator /(unsigned int v) { return { x / v, y / v }; }
+Vec2 Vec2::operator *(double v) { return { x * (float)v, y * (float)v }; }
+Vec2 Vec2::operator /(double v) { return { x / (float)v, y / (float)v }; }
 
 Vec2 Vec2::operator +=(Vec2& other)
 {
@@ -105,6 +111,48 @@ Vec2 Vec2::operator *=(float& v)
 }
 
 Vec2 Vec2::operator /=(float& v)
+{
+	x /= v;
+	y /= v;
+	return *this;
+}
+
+Vec2 Vec2::operator *=(int& v)
+{
+	x *= v;
+	y *= v;
+	return *this;
+}
+
+Vec2 Vec2::operator /=(int& v)
+{
+	x /= v;
+	y /= v;
+	return *this;
+}
+
+Vec2 Vec2::operator *=(double& v)
+{
+	x *= v;
+	y *= v;
+	return *this;
+}
+
+Vec2 Vec2::operator /=(double& v)
+{
+	x /= v;
+	y /= v;
+	return *this;
+}
+
+Vec2 Vec2::operator *=(unsigned int& v)
+{
+	x *= v;
+	y *= v;
+	return *this;
+}
+
+Vec2 Vec2::operator /=(unsigned int& v)
 {
 	x /= v;
 	y /= v;

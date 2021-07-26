@@ -23,7 +23,7 @@ void BehaviourNode::SetContext(string name, unsigned long long value)
 
 	ContextData* data = &m_Context->at(name);
 	data->Type = ContextDataType::Integer;
-	data->Integer = value;
+	data->Data = make_any<unsigned long long>(value);
 }
 
 void BehaviourNode::SetContext(string name, std::string value)
@@ -33,7 +33,7 @@ void BehaviourNode::SetContext(string name, std::string value)
 
 	ContextData* data = &m_Context->at(name);
 	data->Type = ContextDataType::String;
-	data->String = value;
+	data->Data = make_any<string>(value);
 }
 
 void BehaviourNode::SetContext(string name, float value) { SetContext(name, double(value)); }
@@ -44,7 +44,7 @@ void BehaviourNode::SetContext(string name, double value)
 
 	ContextData* data = &m_Context->at(name);
 	data->Type = ContextDataType::Decimal;
-	data->Decimal = value;
+	data->Data = make_any<double>(value);
 }
 
 /// --- EVALUATOR --- ///

@@ -22,5 +22,7 @@ namespace Framework
 
 		template<typename T>
 		T* Add() { return m_RootNode.AddChild<T>(); }
+
+		BT::Sequence* Root() { return &m_RootNode; }
 	};
 }

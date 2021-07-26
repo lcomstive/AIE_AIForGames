@@ -1,4 +1,5 @@
 #include <string>
+#include <thread>
 #include <iostream>
 #include <Game.hpp>
 #include <raylib.h>
@@ -7,7 +8,9 @@
 
 #include <Framework/BehaviourTrees/Actions/Wait.hpp>
 #include <Framework/BehaviourTrees/Actions/CanSee.hpp>
+#include <Framework/BehaviourTrees/Actions/FindPath.hpp>
 #include <Framework/BehaviourTrees/Actions/MoveTowards.hpp>
+#include <Framework/BehaviourTrees/Actions/NavigatePath.hpp>
 
 using namespace std;
 using namespace Framework;
@@ -44,8 +47,7 @@ Game::Game()
 	InitWindow(1280, 720, "Game");
 	SetWindowState(FLAG_WINDOW_RESIZABLE);
 
-	SetTargetFPS(60);
-	// SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
+	SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
 
 	PhysicsWorldArgs args;
 	args.Gravity = { 0, 0 };
@@ -60,8 +62,7 @@ Game::Game()
 	// Camera
 	m_Camera = Camera2D();
 	m_Camera.zoom = 0.9f;
-	m_Camera.rotation = 180.0f;
-	m_Camera.target = { m_Map.GetWidth() * GridCellSize / -2.0f , m_Map.GetHeight() * GridCellSize / 2.0f };
+	m_Camera.target = { m_Map.GetWidth() * GridCellSize / 2.0f , m_Map.GetHeight() * GridCellSize / 2.0f };
 }
 
 Game::~Game()
@@ -84,7 +85,9 @@ void Game::Run()
 
 		PrePhysicsUpdate();
 		m_Root->PrePhysicsUpdate();
+
 		PhysicsWorld::Step();
+
 		PostPhysicsUpdate();
 		m_Root->PostPhysicsUpdate();
 
@@ -96,10 +99,10 @@ void Game::Run()
 		PhysicsWorld::GetBox2DWorld()->DebugDraw();
 #endif
 
+
 		EndMode2D();
 
 		DrawUI();
-
 		EndDrawing();
 	}
 }
@@ -111,22 +114,22 @@ void Game::Update()
 	mouseDelta.x /= m_Camera.zoom;
 	mouseDelta.y /= m_Camera.zoom;
 	if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
-		m_Camera.target = { m_Camera.target.x + mouseDelta.x, m_Camera.target.y + mouseDelta.y };
+		m_Camera.target = { m_Camera.target.x - mouseDelta.x, m_Camera.target.y - mouseDelta.y };
 
 	// Zoom in & out using mouse scroll
 	m_Camera.zoom += GetMouseWheelMove() * GetFrameTime() * ZoomSpeed;
 	m_Camera.zoom = max(min(m_Camera.zoom, MaxZoom), MinZoom); // Clamp
 
 	// Spawn random creatures at mouse position
-	auto mousePos = (Vec2)GetScreenToWorld2D(GetMousePosition(), m_Camera) / GridCellSize;
-	mousePos.x = floorf(-mousePos.x);
-	mousePos.y = floorf( mousePos.y);
-	auto cell = m_PathfindingGrid->GetCell((unsigned int)mousePos.x, (unsigned int)mousePos.y);
+	Vec2 mousePos = (Vec2)GetScreenToWorld2D(GetMousePosition(), m_Camera) / GridCellSize;
+	mousePos.x = floorf(mousePos.x);
+	mousePos.y = floorf(mousePos.y);
+	auto cell = m_PathfindingGrid->GetCell(mousePos.x, mousePos.y);
 	if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) &&
-		mousePos.x >= 0 && mousePos.x < m_Map.GetWidth() &&
+		mousePos.x >= 0 && mousePos.x < m_Map.GetWidth()  &&
 		mousePos.y >= 0 && mousePos.y < m_Map.GetHeight() &&
 		cell && cell->Traversable)
-		SpawnRandomCreature(mousePos * GridCellSize);
+		SpawnRandomCreature(mousePos * GridCellSize + Vec2(GridCellSize / 2.0f, GridCellSize / 2.0f));
 }
 
 void Game::PrePhysicsUpdate() { }
@@ -168,23 +171,21 @@ GameObject* Game::AddBackgroundTile(unsigned int x, unsigned int y, char c, int 
 
 GameObject* Game::AddBackgroundTileWaterEdge(unsigned int x, unsigned int y)
 {
-	unsigned int mapY = m_Map.GetHeight() - y - 1;
-
 	WaterEdge edge = WaterEdge::Top;
 
-	char tileLeft = m_Map.GetTileChar(x - 1, mapY);
-	char tileRight = m_Map.GetTileChar(x + 1, mapY);
-	char tileUp = m_Map.GetTileChar(x, mapY - 1);
-	char tileDown = m_Map.GetTileChar(x, mapY + 1);
+	char tileLeft = m_Map.GetTileChar(x + 1, y);
+	char tileRight = m_Map.GetTileChar(x - 1, y);
+	char tileUp = m_Map.GetTileChar(x, y - 1);
+	char tileDown = m_Map.GetTileChar(x, y + 1);
 
 	// Check diagonals
-	if (m_Map.GetTileChar(x - 1, mapY - 1) == 'W')
+	if (m_Map.GetTileChar(x + 1, y - 1) == 'W')
 		edge = WaterEdge::BottomRight;
-	if (m_Map.GetTileChar(x + 1, mapY - 1) == 'W')
+	if (m_Map.GetTileChar(x - 1, y - 1) == 'W')
 		edge = WaterEdge::BottomLeft;
-	if (m_Map.GetTileChar(x - 1, mapY + 1) == 'W')
+	if (m_Map.GetTileChar(x + 1, y + 1) == 'W')
 		edge = WaterEdge::TopRight;
-	if (m_Map.GetTileChar(x + 1, mapY + 1) == 'W')
+	if (m_Map.GetTileChar(x - 1, y + 1) == 'W')
 		edge = WaterEdge::TopLeft;
 
 	// Check immediate edges
@@ -198,32 +199,37 @@ GameObject* Game::AddBackgroundTileWaterEdge(unsigned int x, unsigned int y)
 		edge = WaterEdge::Top;
 
 	// Check Joins
-	if (tileUp == 'E' && tileRight == 'E' && m_Map.GetTileChar(x + 1, mapY - 1) != 'W')
+	if (tileUp == 'E' && tileRight == 'E' && m_Map.GetTileChar(x - 1, y - 1) != 'W')
 		edge = WaterEdge::JoinTopRight;
-	if (tileUp == 'E' && tileLeft == 'E' && m_Map.GetTileChar(x - 1, mapY - 1) != 'W')
+	if (tileUp == 'E' && tileLeft == 'E' && m_Map.GetTileChar(x + 1, y - 1) != 'W')
 		edge = WaterEdge::JoinTopLeft;
-	if (tileDown == 'E' && tileRight == 'E' && m_Map.GetTileChar(x + 1, mapY + 1) != 'W')
+	if (tileDown == 'E' && tileRight == 'E' && m_Map.GetTileChar(x - 1, y + 1) != 'W')
 		edge = WaterEdge::JoinBottomRight;
-	if (tileDown == 'E' && tileLeft == 'E' && m_Map.GetTileChar(x - 1, mapY + 1) != 'W')
+	if (tileDown == 'E' && tileLeft == 'E' && m_Map.GetTileChar(x + 1, y + 1) != 'W')
 		edge = WaterEdge::JoinBottomLeft;
 
 	return AddBackgroundTile(x, y, 'E', (int)edge);
 }
 
-GameObject* Game::SpawnRandomCreature(Vec2& position)
+GameObject* Game::SpawnRandomCreature(Vec2 position)
 {
 	auto creatureInfo = m_CreatureInfos[rand() % m_CreatureInfos.size()];
 	Animal* creature = new Animal(creatureInfo.SpriteSheet);
+	creature->Frame = 0;
+	creature->MaxFrames = creatureInfo.MaxFrames;
+	creature->SetTimeBetweenFrames(0.1f);
 
 	creature->AddTag("Creature");
 	creature->SetSize(creatureInfo.Size);
 	creature->SetView(creatureInfo.SpriteOffset, creatureInfo.SpriteSize);
-	creature->SetPosition(position + Vec2{ GridCellSize / 2.0f, GridCellSize / 2.0f });
+	creature->SetPosition(position /* + Vec2{GridCellSize / 2.0f, GridCellSize / 2.0f } */);
 
 	creature->GeneratePhysicsBody();
 	
 	m_Root->AddChild(creature);
 	m_Creatures.push_back(creature);
+
+	creature->GetBehaviourTree()->Root()->SetContext("CellSize", GridCellSize);
 
 	// Behaviour Tree
 	auto canSee = creature->GetBehaviourTree()->Add<CanSee>();
@@ -231,12 +237,15 @@ GameObject* Game::SpawnRandomCreature(Vec2& position)
 	canSee->SightRange = 150.0f;
 	canSee->FieldOfView = 50.0f;
 
-	auto moveTowards = creature->GetBehaviourTree()->Add<MoveTowards>();
+	auto findPath = creature->GetBehaviourTree()->Add<FindPath>();
+	findPath->CopyGrid(m_PathfindingGrid.get());
+	findPath->StepsPerUpdate = 1;
+
+	auto moveTowards = creature->GetBehaviourTree()->Add<NavigatePath>();
 	moveTowards->Speed = 50.0f;
-	moveTowards->GetValuesFromContext = true;
 
 #ifndef NDEBUG
-	cout << "Created creature @ " << creature->GetPosition() << endl;
+	cout << "Created creature @ " << creature->GetPosition() << " " << (creature->GetPosition() / GridCellSize) << endl;
 #endif
 	return creature;
 }
@@ -306,6 +315,7 @@ void Game::CreateMap()
 		});
 
 	// Background
+	m_CharacterSheet = LoadTexture("./assets/Sprites/PixelNauta/slime-sheet.png");
 	m_BackgroundSheet = LoadTexture("./assets/Sprites/Kenney/Roguelike/Spritesheet/roguelikeSheet_transparent.png");
 
 	unsigned int mapWidth = m_Map.GetWidth();
@@ -319,13 +329,13 @@ void Game::CreateMap()
 	{
 		for (unsigned int y = 0; y < mapHeight; y++)
 		{
-			char tileChar = m_Map.GetTileChar(x, mapHeight - y - 1); // Raylib inverts y axis, so get height - y
+			char tileChar = m_Map.GetTileChar(x, y);
 			auto& tile = m_Map.GetTileDef(tileChar);
 			if (tile.SpritesheetOffsets.size() == 0)
 				continue; // Empty
 
 			// For setting pathfinding properties
-			auto cell = m_PathfindingGrid->GetCell(x, mapHeight - y - 1);
+			auto cell = m_PathfindingGrid->GetCell(x, y - 1);
 
 			// Create tile
 			auto foreground = AddBackgroundTile(x, y, tileChar);
@@ -344,7 +354,8 @@ void Game::CreateMap()
 				if (tileChar == '-' || tileChar == 'B') // Raycast hittable tiles
 					foreground->GeneratePhysicsBody(false);
 
-				cell->Traversable = false;
+				if(tileChar != 'F')
+					cell->Traversable = false;
 				break;
 			}
 			case 'E':
@@ -372,10 +383,11 @@ void Game::CreateMap()
 /// CREATURE INFO ///
 void Game::CreateCreatureInfos()
 {
-	CreatureInfo info("./assets/Sprites/Lewis/Slime.jpg");
+	CreatureInfo info(m_CharacterSheet);
 	info.Size = { GridCellSize, GridCellSize };
 	info.SpriteSize = { 32, 32 };
-
+	info.MaxFrames = 4;
+	info.SpriteOffset = { 0, 5 * 32 };
 	m_CreatureInfos.emplace_back(info);
 }
 

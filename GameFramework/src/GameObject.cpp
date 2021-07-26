@@ -40,13 +40,16 @@ void GameObject::Destroy()
 	m_IDs.erase(m_ID);
 	m_ID = (unsigned int)-1;
 	for (auto& pair : m_Children)
+	{
+		pair.second->Destroy();
 		delete pair.second;
+	}
 
 	if (m_PhysicsBody)
-#ifndef NDEBUG
-		// while(PhysicsWorld::GetBox2DWorld()->IsLocked())
-#endif
-			PhysicsWorld::GetBox2DWorld()->DestroyBody(m_PhysicsBody);
+	{
+		PhysicsWorld::GetBox2DWorld()->DestroyBody(m_PhysicsBody);
+		m_PhysicsBody = nullptr;
+	}
 }
 
 void GameObject::Update()
@@ -73,8 +76,11 @@ void GameObject::PrePhysicsUpdate()
 {
 	if (m_PhysicsBody)
 	{
-		if(m_DirtyTransform)
-			m_PhysicsBody->SetTransform(m_Position + m_Parent->GetPosition(), (m_Rotation + m_Parent->GetRotation()) * -DEG2RAD);
+		if (m_DirtyTransform)
+			m_PhysicsBody->SetTransform(
+				m_Position + m_Parent->GetPosition(),
+				(m_Rotation + m_Parent->GetRotation()) * DEG2RAD
+			);
 		m_DirtyTransform = false;
 
 		OnPrePhysicsUpdate();
@@ -88,7 +94,7 @@ void GameObject::PostPhysicsUpdate()
 {
 	if (m_PhysicsBody)
 	{
-		m_Rotation = m_PhysicsBody->GetAngle() * -RAD2DEG;
+		// m_Rotation = m_PhysicsBody->GetAngle() * RAD2DEG;
 		m_Position = m_PhysicsBody->GetPosition();
 
 		OnPostPhysicsUpdate();
@@ -205,8 +211,8 @@ Vec2 GameObject::GetForward()
 {
 	return Vec2
 	{
-		sin(m_Rotation),
-		cos(m_Rotation)
+		sin(m_Rotation * DEG2RAD),
+		cos(m_Rotation * DEG2RAD)
 	};
 }
 

@@ -5,11 +5,11 @@
 using namespace std;
 using namespace Framework;
 
-const float HealthDecayPerSecond = 50;
+const float HealthDecayPerSecond = 10;
 
-Animal::Animal(GameObject* parent) : Sprite(parent) { Init(); }
-Animal::Animal(Texture texture, GameObject* parent) : Sprite(texture, parent) { Init(); }
-Animal::Animal(string texturePath, GameObject* parent) : Sprite(texturePath, parent) { Init(); }
+Animal::Animal(GameObject* parent) : AnimatedSprite(parent) { Init(); }
+Animal::Animal(Texture texture, GameObject* parent) : AnimatedSprite(texture, parent) { Init(); }
+Animal::Animal(string texturePath, GameObject* parent) : AnimatedSprite(texturePath, parent) { Init(); }
 
 void Animal::Init()
 {
@@ -34,24 +34,23 @@ void Animal::OnUpdate()
 	m_Thirst = clamp(m_Thirst, 0.0f, 1.0f);
 	m_Hunger = clamp(m_Hunger, 0.0f, 1.0f);
 
-	if(m_Health <= 0.0f)
-		Destroy();
-
-	if(m_Health < 100.0f)
-		cout << "[" << GetID() << "] Health: " << m_Health << endl;
-
 	m_BehaviourTree->Update();
-	Framework::Sprite::OnUpdate();
+	Framework::AnimatedSprite::OnUpdate();
+
+	if (m_Health <= 0.0f)
+		Destroy();
 }
 
 void Animal::OnDraw()
 {
-	Framework::Sprite::OnDraw();
+	Framework::AnimatedSprite::OnDraw();
+
+#ifndef NDEBUG
 	m_BehaviourTree->DebugDraw();
 
 	Vec2 pos = GetPosition();
-	pos.x = -pos.x;
-	DrawLineEx((Vec2)(pos + Vec2{ 7.5f,  5 }), (Vec2)(pos + Vec2{ 7.5f - (15 * m_Health / 100.0f),  5 }), 2.0f, RED);
-	DrawLineEx((Vec2)(pos + Vec2{ 7.5f,  0 }), (Vec2)(pos + Vec2{ 7.5f - (15 * m_Thirst),  0 }), 2.0f, BLUE);
-	DrawLineEx((Vec2)(pos + Vec2{ 7.5f, -5 }), (Vec2)(pos + Vec2{ 7.5f - (15 * m_Hunger), -5 }), 2.0f, GREEN);
+	DrawLineEx((Vec2)(pos - Vec2(7.5f,  5.0f)), (Vec2)(pos - Vec2(7.5f - (15 * m_Health / 100.0f), 5.0f)), 2.0f, RED);
+	DrawLineEx((Vec2)(pos - Vec2(7.5f,  0.0f)), (Vec2)(pos - Vec2(7.5f - (15 * m_Thirst),  0.0f)), 2.0f, BLUE);
+	DrawLineEx((Vec2)(pos - Vec2(7.5f, -5.0f)), (Vec2)(pos - Vec2(7.5f - (15 * m_Hunger), -5.0f)), 2.0f, GREEN);
+#endif
 }

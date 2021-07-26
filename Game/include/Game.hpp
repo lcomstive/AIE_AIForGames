@@ -16,6 +16,7 @@ class Game
 	{
 		Texture SpriteSheet;
 		Framework::Vec2 Size;
+		unsigned int MaxFrames;
 		Framework::Vec2 SpriteSize;
 		Framework::Vec2 SpriteOffset;
 
@@ -42,12 +43,13 @@ class Game
 	std::unique_ptr<PathfindingGrid> m_PathfindingGrid;
 
 	// Background Tiles
+	Texture m_CharacterSheet;
 	Texture m_BackgroundSheet;
 
 	void CreateMap();
 	void CreateCreatureInfos();
 
-	Framework::GameObject* SpawnRandomCreature(Framework::Vec2& position);
+	Framework::GameObject* SpawnRandomCreature(Framework::Vec2 position);
 	Framework::GameObject* AddBackgroundTileWaterEdge(unsigned int x, unsigned int y);
 	Framework::GameObject* AddBackgroundTile(unsigned int x, unsigned int y, char c, int spriteIndex = -1);
 

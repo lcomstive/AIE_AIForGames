@@ -83,7 +83,7 @@ void AStar::Step()
 
 	for (auto& connection : current->Neighbours)
 	{
-		if (!connection.Target)
+		if (!connection.Target || !connection.Target->Traversable)
 			continue; // Invalid target
 		if (Find(m_ClosedList, connection.Target))
 			continue; // Already checked target for pathing
