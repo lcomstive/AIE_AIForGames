@@ -11,8 +11,8 @@ BehaviourResult NavigatePath::Execute(GameObject* go)
 	if (!ContextExists("Path"))
 		return BehaviourResult::Failure;
 
-	m_Path = GetContext("Path", vector<AStarCell*>());
 	m_GridSize = GetContext("CellSize", 1.0f);
+	m_Path = GetContext("Path", vector<AStarCell*>());
 	Speed = GetContext("Speed", Speed <= 0 ? 100.0f : Speed);
 
 	if (m_Path.empty()) // No path present, or finished navigating
@@ -41,7 +41,7 @@ BehaviourResult NavigatePath::Execute(GameObject* go)
 	float speed = Speed / m_Path[0]->Cost;
 	go->SetPosition(go->GetPosition() + direction * speed * GetFrameTime());
 
-	return UpdatePathEachFrame ? BehaviourResult::Failure : BehaviourResult::Pending;
+	return BehaviourResult::Pending;
 }
 
 void NavigatePath::OnDebugDraw(GameObject* go)

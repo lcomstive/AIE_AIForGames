@@ -1,16 +1,19 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <unordered_map>
-#include <box2d/box2d.h>
 #include <Framework/Vec2.hpp>
+
+#pragma warning(push, 0) // Disable warnings
+#include <robin_hood.h>
+#include <box2d/box2d.h>
+#pragma warning(pop) // Restore warnings
 
 namespace Framework
 {
 	class GameObject
 	{
-		static std::unordered_map<unsigned int, GameObject*> m_IDs;
-		static std::unordered_map<std::string, std::vector<GameObject*>> m_GlobalTags;
+		static robin_hood::unordered_map<unsigned int, GameObject*> m_IDs;
+		static robin_hood::unordered_map<std::string, std::vector<GameObject*>> m_GlobalTags;
 
 		static unsigned int GetNextID();
 
@@ -29,7 +32,7 @@ namespace Framework
 
 		// Heirarchy
 		GameObject* m_Parent;
-		std::unordered_map<unsigned int, GameObject*> m_Children;
+		robin_hood::unordered_map<unsigned int, GameObject*> m_Children;
 
 	public:
 		GameObject(GameObject* parent = nullptr);
@@ -77,6 +80,8 @@ namespace Framework
 		void AddChildren(std::vector<GameObject*> children);
 		void RemoveChild(GameObject* child);
 		GameObject* FindChild(unsigned int id);
+
+		void ReserveChildren(unsigned int count);
 
 		Vec2& GetPosition();
 		void SetPosition(Vec2 position);

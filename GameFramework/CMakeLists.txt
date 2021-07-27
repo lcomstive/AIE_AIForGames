@@ -13,4 +13,4 @@ add_library(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Source" FILES ${SOURCE_FILES})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include" PREFIX "Headers" FILES ${HEADER_FILES})
 
-target_link_libraries(${PROJECT_NAME} raylib box2d)
+target_link_libraries(${PROJECT_NAME} raylib box2d robin_hood)

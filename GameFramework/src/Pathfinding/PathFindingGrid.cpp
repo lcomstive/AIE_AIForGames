@@ -34,6 +34,7 @@ void SquareGridNode::CalculateNeighbours(void* gridPtr)
 {
 	auto grid = (Grid<SquareGridNode>*)gridPtr;
 	Cell.Neighbours.clear();
+	Cell.Neighbours.shrink_to_fit();
 
 	// Left
 	SquareGridNodeAddNeighbour(&Cell,  1,  0, grid); // Right

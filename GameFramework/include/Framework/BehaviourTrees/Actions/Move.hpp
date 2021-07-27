@@ -2,14 +2,14 @@
 
 namespace Framework::BT
 {
-	class MoveTowards : public Action
+	class Move : public Action
 	{
 	public:
 		float Speed;
-		unsigned int TargetID;
+		Vec2 Direction;
 		bool GetValuesFromContext;
 
-		MoveTowards() : TargetID((unsigned int)-1), Speed(10.0f), GetValuesFromContext(true) { }
+		Move() : Speed(10.0f), Direction(0, 0), GetValuesFromContext(false) { }
 
 		BehaviourResult Execute(GameObject* go) override;
 	};

@@ -102,7 +102,7 @@ BehaviourResult Sequence::Execute(GameObject* go)
 		auto result = child->Execute(go);
 		switch (result)
 		{
-		case BehaviourResult::Failure:
+		case BehaviourResult::Failure: PendingChildIndex = 0;
 		case BehaviourResult::Pending: return result;
 		case BehaviourResult::Success:
 			if (++PendingChildIndex >= children.size())
@@ -135,7 +135,7 @@ BehaviourResult RandomSequence::Execute(GameObject* go)
 		children.erase(children.begin() + PendingChildIndex);
 		switch (result)
 		{
-		case BehaviourResult::Failure:
+		case BehaviourResult::Failure: PendingChildIndex = 0;
 		case BehaviourResult::Pending: return result;
 		case BehaviourResult::Success:
 			if (children.size() == 0)
@@ -263,8 +263,8 @@ BehaviourResult Succeeder::Execute(GameObject* go)
 	return BehaviourResult::Success;
 }
 
-/// --- REPEAT --- ///
-BehaviourResult Repeat::Execute(GameObject* go)
+/// --- REPEAT UNTIL --- ///
+BehaviourResult RepeatUntil::Execute(GameObject* go)
 {
 	auto child = GetChild();
 	BehaviourResult result = BehaviourResult::Failure;
@@ -280,6 +280,26 @@ BehaviourResult Repeat::Execute(GameObject* go)
 	}
 	return result;
 }
+
+/// --- REPEAT TIME --- ///
+void RepeatTime::SetTime(float value) { m_TimeLeft = m_MaxTime = value; }
+
+BehaviourResult RepeatTime::Execute(GameObject* go)
+{
+	auto child = GetChild();
+	if (!child)
+		return BehaviourResult::Failure;
+
+	m_TimeLeft -= GetFrameTime();
+	if (m_TimeLeft > 0)
+	{
+		child->Execute(go);
+		return BehaviourResult::Pending;
+	}
+	m_TimeLeft = m_MaxTime;
+	return BehaviourResult::Success;
+}
+
 
 /// --- REPEAT COUNT --- ///
 BehaviourResult RepeatCount::Execute(GameObject* go)

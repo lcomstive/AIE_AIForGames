@@ -7,9 +7,10 @@ using namespace std;
 using namespace Framework;
 using namespace Framework::Pathfinding;
 
-#define FINISH_MAX_ITERATIONS 300
+#define FINISH_MAX_ITERATIONS 1000
 
 AStar::AStar(float heuristicModifier, std::function<float(AStarCell* cell, AStarCell* end)> heuristic)
+	: m_Start(nullptr), m_End(nullptr)
 {
 	m_HeuristicModifier = heuristicModifier;
 	if (heuristic)
@@ -22,12 +23,12 @@ bool Framework::Pathfinding::CompareAStarCells(AStarCell* a, AStarCell* b) { ret
 float AStar::ManhattanHeuristic(AStarCell* cell, AStarCell* end) { return abs(cell->x - end->x) + abs(end->y - end->y); }
 float AStar::EuclideanHeuristic(AStarCell* cell, AStarCell* end) { return sqrt(pow(cell->x - end->x, 2.0f) + pow(cell->y - end->y, 2.0f)); }
 
-bool Find(vector<AStarCell*> set, AStarCell* value)
+bool Find(const vector<AStarCell*>& set, AStarCell* value)
 {
-	return find_if(set.begin(), set.end(), [=](AStarCell* cell)
-		{
-			return value == cell;
-		}) != set.end();
+	for (size_t i = 0; i < set.size(); i++)
+		if (set[i] == value)
+			return true;
+	return false;
 }
 
 void AStar::StartSearch(AStarCell* start, AStarCell* end)
@@ -116,6 +117,7 @@ void AStar::Step()
 
 		float fscore = gscore + hscore;
 
+		// If neighbour has already been processed, check if fscore is less than last-processing's fscore
 		if (Find(m_ClosedList, connection) && fscore >= connection->FScore)
 			continue;
 

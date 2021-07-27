@@ -41,11 +41,11 @@ namespace Framework::BT
 	public:
 		BehaviourNode() : m_Context() {}
 		BehaviourNode(const BehaviourNode& other) : m_Context(other.m_Context) { }
-		~BehaviourNode() = default;
+		virtual ~BehaviourNode() = default;
 
 		virtual std::string GetName() { return "Node"; }
 		virtual BehaviourResult Execute(GameObject* go) = 0;
-		virtual void OnDebugDraw(GameObject* go) { }
+		virtual void OnDebugDraw(GameObject*) { }
 
 		void ClearContext();
 		void ClearContext(std::string name);
@@ -359,13 +359,24 @@ namespace Framework::BT
 	};
 
 	// Repeats execution until condition is false (while loop)
-	class Repeat : public Decorator
+	class RepeatUntil : public Decorator
 	{
 	public:
-		std::function<bool(GameObject* go, Repeat* caller)> Condition;
+		std::function<bool(GameObject* go, RepeatUntil* caller)> Condition;
 
 		virtual BehaviourResult Execute(GameObject* go) override;
 		virtual std::string GetName() override { return "Repeat"; }
+	};
+
+	// Repeats execution of node for certain amount of time
+	class RepeatTime : public Decorator
+	{
+		float m_TimeLeft, m_MaxTime;
+
+	public:
+		void SetTime(float value);
+
+		BehaviourResult Execute(GameObject* go) override;
 	};
 
 	// Repeats execution of child until count is reached

@@ -1,6 +1,9 @@
 #pragma once
+#pragma warning(push, 0) // Disable warnings
 #include <box2d/b2_draw.h>
 #include <box2d/b2_world.h>
+#pragma warning(pop) // Restore warnings
+
 #include <Framework/Vec2.hpp>
 
 namespace Framework

@@ -48,8 +48,7 @@ namespace Framework::Pathfinding
 	public:
 		Grid(unsigned int width, unsigned int height) : m_Width(width), m_Height(height)
 		{
-			bool isNode = std::is_base_of<GridNode, T>::value;
-			assert(isNode);
+			assert((std::is_base_of<GridNode, T>::value));
 
 			// Create grid
 			m_Grid = new T * [m_Width];
@@ -59,9 +58,7 @@ namespace Framework::Pathfinding
 				for (unsigned int y = 0; y < m_Height; y++)
 				{
 					m_Grid[x][y] = T();
-
-					GridNode* node = (GridNode*)&m_Grid[x][y];
-					node->Cell = AStarCell((float)x, (float)y);
+					m_Grid[x][y].Cell = AStarCell((float)x, (float)y);
 				}
 			}
 		}

@@ -16,11 +16,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Add libraries
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/raylib)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/box2d)
-add_subdirectory(GameFramework)
-
 set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty)
+
+add_subdirectory(${THIRD_PARTY_DIR}/box2d)	# Physics library
+add_subdirectory(${THIRD_PARTY_DIR}/raylib) # Graphics library
+add_subdirectory(${THIRD_PARTY_DIR}/robin-hood-hashing) # Fast hash-maps
+add_subdirectory(GameFramework)
 
 # Add Applications
 add_subdirectory(Game)

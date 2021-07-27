@@ -14,7 +14,7 @@ namespace Framework::BT
 			unsigned int TargetID;
 			bool Started, Finished;
 
-			CanSeeTargetRaycastCallback() : CanSee(false), Started(false), Finished(false), TargetID(-1) { }
+			CanSeeTargetRaycastCallback() : CanSee(false), Started(false), Finished(false), TargetID((unsigned int)-1) { }
 
 			float ReportFixture(b2Fixture* fixture, const b2Vec2& point, const b2Vec2& normal, float fraction) override;
 		};

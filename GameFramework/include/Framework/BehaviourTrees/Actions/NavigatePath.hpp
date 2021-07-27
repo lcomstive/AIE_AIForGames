@@ -12,7 +12,6 @@ namespace Framework::BT
 
 	public:
 		float Speed;
-		bool UpdatePathEachFrame = false;
 
 		NavigatePath() : Speed(10.0f), m_GridSize(1.0f), m_Path() { }
 

@@ -4,8 +4,8 @@
 using namespace std;
 using namespace Framework;
 
-unordered_map<unsigned int, GameObject*> GameObject::m_IDs;
-unordered_map<string, vector<GameObject*>> GameObject::m_GlobalTags;
+robin_hood::unordered_map<unsigned int, GameObject*> GameObject::m_IDs;
+robin_hood::unordered_map<string, vector<GameObject*>> GameObject::m_GlobalTags;
 
 unsigned int GameObject::GetNextID()
 {
@@ -50,18 +50,25 @@ void GameObject::Destroy()
 		PhysicsWorld::GetBox2DWorld()->DestroyBody(m_PhysicsBody);
 		m_PhysicsBody = nullptr;
 	}
+
+	for(int i = m_Tags.size() - 1; i >= 0; i--)
+		RemoveTag(m_Tags[i]);
 }
 
 void GameObject::Update()
 {
 	OnUpdate();
-	auto childrenCopy = m_Children; // To prevent modifying the list we are iterating over
-	for (auto& pair : childrenCopy)
+
+	auto it = m_Children.begin();
+	while(it != m_Children.end())
 	{
-		if (pair.second->m_ShouldDelete)
-			m_Children.erase(pair.first);
+		if (!it->second->m_ShouldDelete)
+		{
+			it->second->Update();
+			it++;
+		}
 		else
-			pair.second->Update();
+			it = m_Children.erase(it);
 	}
 }
 
@@ -78,7 +85,7 @@ void GameObject::PrePhysicsUpdate()
 	{
 		if (m_DirtyTransform)
 			m_PhysicsBody->SetTransform(
-				m_Position + m_Parent->GetPosition(),
+				 m_Position + m_Parent->GetPosition(),
 				(m_Rotation + m_Parent->GetRotation()) * DEG2RAD
 			);
 		m_DirtyTransform = false;
@@ -130,6 +137,8 @@ void GameObject::GeneratePhysicsBody(bool dynamic, float density, float friction
 
 	m_PhysicsBody->CreateFixture(&fixture);
 }
+
+void GameObject::ReserveChildren(unsigned int count) { m_Children.reserve(count); }
 
 /// --- GETTERS & SETTERS --- ///
 GameObject* GameObject::GetParent() { return m_Parent; }
@@ -227,22 +236,24 @@ void GameObject::AddTag(std::string tag)
 void GameObject::RemoveTag(std::string tag)
 {
 	if (m_GlobalTags.find(tag) == m_GlobalTags.end())
-		return; // Tag doesn't exist
-
-	auto objects = m_GlobalTags[tag];
-	for (int i = (int)objects.size() - 1; i >= 0; i--)
 	{
-		if (objects[i]->m_ID != m_ID)
+		cout << "Tried removing '" << tag << "' but tag doesn't exist" << endl;
+		return; // Tag doesn't exist
+	}
+
+	for (auto& it = m_GlobalTags[tag].cbegin(); it != m_GlobalTags[tag].cend(); it++)
+	{
+		if (*it != this)
 			continue;
-		m_GlobalTags[tag].erase(objects.begin() + i);
+		m_GlobalTags[tag].erase(it);
 		break;
 	}
 
-	for (int i = (int)m_Tags.size() - 1; i >= 0; i--)
+	for (auto& it = m_Tags.cbegin(); it != m_Tags.cend(); it++)
 	{
-		if (m_Tags[i].compare(tag) != 0)
+		if ((*it).compare(tag) != 0)
 			continue;
-		m_Tags.erase(m_Tags.begin() + i);
+		m_Tags.erase(it);
 		break;
 	}
 }

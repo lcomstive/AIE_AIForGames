@@ -133,15 +133,15 @@ Vec2 Vec2::operator /=(int& v)
 
 Vec2 Vec2::operator *=(double& v)
 {
-	x *= v;
-	y *= v;
+	x *= (float)v;
+	y *= (float)v;
 	return *this;
 }
 
 Vec2 Vec2::operator /=(double& v)
 {
-	x /= v;
-	y /= v;
+	x /= (float)v;
+	y /= (float)v;
 	return *this;
 }
 

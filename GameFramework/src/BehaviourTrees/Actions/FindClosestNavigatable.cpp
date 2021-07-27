@@ -1,15 +1,26 @@
 #include <Framework/BehaviourTrees/Actions/FindClosestNavigatable.hpp>
 
 using namespace std;
+using namespace Framework;
 using namespace Framework::BT;
 using namespace Framework::Pathfinding;
 
 void FindClosestNavigatable::CopyGrid(SquareGrid* grid)
 {
-	if (m_Grid)
-		delete m_Grid;
+	if (!ContextExists("Grid"))
+	{
+		m_Grid = new Grid<SquareGridNode>(grid->GetWidth(), grid->GetHeight());
+		m_AStar = new AStar();
 
-	m_Grid = new Grid<SquareGridNode>(grid->GetWidth(), grid->GetHeight());
+		SetContext("AStar", m_AStar);
+		SetContext("AStarGrid", m_Grid);
+	}
+	else
+	{
+		m_AStar = GetContext<AStar*>("AStar");
+		m_Grid = GetContext<Grid<SquareGridNode>*>("AStarGrid");
+	}
+
 	for (unsigned int x = 0; x < grid->GetWidth(); x++)
 	{
 		for (unsigned int y = 1; y < grid->GetHeight(); y++)
@@ -24,37 +35,18 @@ void FindClosestNavigatable::CopyGrid(SquareGrid* grid)
 	m_Grid->RefreshNodes();
 }
 
-BehaviourResult FindClosestNavigatable::Execute(GameObject* go)
+void FindClosestNavigatable::ExecuteFinding(Vec2 position, const vector<GameObject*> queryList, float cellSize)
 {
-	if (GetTargetFromContext)
-	{
-		Sight = GetContext<float>("Sight", 10000.0f);
-		TargetTags = GetContext("TargetTags", vector<string>());
-		if (ContextExists("TargetTag"))
-			TargetTags.emplace_back(GetContext<string>("TargetTarget"));
-	}
+	// Reset
+	m_FindThreadStarted.store(true);
+	m_FindThreadFinished.store(false);
+	m_FoundClosest = nullptr;
+	m_FoundPath = vector<AStarCell*>();
 
-	vector<GameObject*> queryList = TargetTags.empty() ? GameObject::GetAll() : vector<GameObject*>();
-
-	for (string& tag : TargetTags)
-	{
-		vector<GameObject*> tagged = GameObject::GetTag(tag);
-		queryList.insert(queryList.end(), tagged.begin(), tagged.end());
-	}
-
-	if (queryList.size() == 0 || !m_Grid)
-		return BehaviourResult::Failure;
-
-	Vec2 position = go->GetPosition();
-	GameObject* closest = nullptr;
-	vector<AStarCell*> closestPath;
 	float smallestFScore = 99999;
 	float closestDistance = 99999;
 
-	float cellSize = GetContext("CellSize", 1.0f);
-	Vec2 startPos = go->GetPosition() / cellSize;
-	cout << "StartPos " << startPos << endl;
-
+	Vec2 startPos = position / cellSize;
 	for (unsigned int i = 0; i < queryList.size(); i++)
 	{
 		Vec2 endPos = queryList[i]->GetPosition();
@@ -65,39 +57,86 @@ BehaviourResult FindClosestNavigatable::Execute(GameObject* go)
 
 		if (startPos.x == endPos.x && startPos.y == endPos.y)
 		{
-			SetContext("Path", vector<AStarCell*>());
-			return BehaviourResult::Success; // Already at target
+			// Already at target
+			lock_guard<mutex> lock(m_FindThreadMutex);
+			m_FindThreadFinished.store(true);
+			m_FindThreadResult = BehaviourResult::Success;
+			return;
 		}
 
-		m_AStar.StartSearch(
+		m_AStar->StartSearch(
 			m_Grid->GetCell((unsigned int)startPos.x, (unsigned int)startPos.y),
 			m_Grid->GetCell((unsigned int)  endPos.x, (unsigned int)  endPos.y)
 		);
 
-		for (unsigned int loop = 0; loop < 500; loop++)
-		{
-			m_AStar.Step();
-			if (m_AStar.IsFinished())
-				break;
-		}
+		m_AStar->Finish();
 
-		if (!m_AStar.IsPathValid() || m_AStar.GetSmallestFScore() > smallestFScore)
+		if (!m_AStar->IsPathValid() || m_AStar->GetSmallestFScore() > smallestFScore)
 			continue;
 
-		closest = queryList[i];
+		m_FoundClosest = queryList[i];
 		closestDistance = distance;
-		closestPath = m_AStar.GetPath();
-		smallestFScore = m_AStar.GetSmallestFScore();
+		m_FoundPath = m_AStar->GetPath();
+		smallestFScore = m_AStar->GetSmallestFScore();
 	}
 
-	if (!closest)
+	m_FindThreadStarted.store(false);
+	m_FindThreadFinished.store(true);
+
+	lock_guard<mutex> lock(m_FindThreadMutex);
+	m_FindThreadResult = m_FoundClosest ? BehaviourResult::Success : BehaviourResult::Failure;
+}
+
+BehaviourResult FindClosestNavigatable::Execute(GameObject* go)
+{
+	if (!m_Grid || !m_AStar)
 	{
-		cout << "No valid paths {" << go->GetID() << "}" << endl;
-		return BehaviourResult::Failure;
+		m_AStar = GetContext<AStar*>("AStar", nullptr);
+		m_Grid = GetContext<SquareGrid*>("AStarGrid", nullptr);
+
+		if (!m_AStar || !m_Grid) // CopyGrid was never called
+			return BehaviourResult::Failure;
 	}
-	SetContext("NewPath", true);
-	SetContext("Path", closestPath);
-	SetContext("Target", closest->GetID());
-	SetContext("Found", closest->GetID());
-	return BehaviourResult::Success;
+
+	if (!m_FindThreadStarted.load() && !m_FindThreadFinished.load())
+	{
+		if (GetTargetFromContext)
+		{
+			Sight = GetContext<float>("Sight", 10000.0f);
+			TargetTags = GetContext("TargetTags", vector<string>());
+			if (ContextExists("TargetTag"))
+				TargetTags.emplace_back(GetContext<string>("TargetTarget"));
+		}
+
+		vector<GameObject*> queryList = TargetTags.empty() ? GameObject::GetAll() : vector<GameObject*>();
+
+		for (string& tag : TargetTags)
+		{
+			vector<GameObject*> tagged = GameObject::GetTag(tag);
+			queryList.insert(queryList.end(), tagged.begin(), tagged.end());
+		}
+
+		if (queryList.size() == 0 || !m_Grid)
+			return BehaviourResult::Failure;
+
+		m_FindThread = thread([=]() { ExecuteFinding(go->GetPosition(), queryList, GetContext<float>("CellSize", 1.0f)); });
+	}
+
+	// Check if still processing
+	if (!m_FindThreadFinished.load())
+		return BehaviourResult::Pending;
+
+	// Reset
+	m_FindThread.join();
+	m_FindThreadStarted.store(false);
+	m_FindThreadFinished.store(false);
+
+	if (m_FindThreadResult == BehaviourResult::Success)
+	{
+		SetContext("Path", m_FoundPath);
+		SetContext("Target", m_FoundClosest->GetID());
+		SetContext("Found", m_FoundClosest->GetID());
+	}
+
+	return m_FindThreadResult;
 }

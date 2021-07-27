@@ -15,14 +15,14 @@ class Game
 	struct CreatureInfo
 	{
 		float Speed;
-		Texture SpriteSheet;
+		Texture2D SpriteSheet;
 		FoodClass FoodSource;
 		Framework::Vec2 Size;
 		unsigned int MaxFrames;
 		Framework::Vec2 SpriteSize;
 		Framework::Vec2 SpriteOffset;
 
-		CreatureInfo(Texture& texture);
+		CreatureInfo(const Texture2D& texture);
 		CreatureInfo(std::string filepath);
 		~CreatureInfo();
 
@@ -42,6 +42,7 @@ class Game
 	Map m_Map;
 	Camera2D m_Camera;
 	Framework::GameObject* m_Root;
+	Framework::GameObject* m_Background;
 	std::unique_ptr<PathfindingGrid> m_PathfindingGrid;
 
 	// Background Tiles
@@ -52,7 +53,7 @@ class Game
 	void CreateMap();
 	void CreateCreatureInfos();
 
-	Framework::GameObject* SpawnRandomCreature(Framework::Vec2 position);
+	Framework::GameObject* SpawnRandomCreature(Framework::Vec2 position, int index = -1);
 	Framework::GameObject* AddBackgroundTileWaterEdge(unsigned int x, unsigned int y);
 	Framework::GameObject* AddBackgroundTile(unsigned int x, unsigned int y, char c, int spriteIndex = -1);
 

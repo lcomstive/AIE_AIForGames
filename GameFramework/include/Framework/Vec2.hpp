@@ -1,8 +1,11 @@
 #pragma once
 #include <string>
 #include <iostream>
+
+#pragma warning(push, 0) // Disable warnings
 #include <raylib.h>
 #include <box2d/b2_math.h>
+#pragma warning(pop) // Restore warnings
 
 namespace Framework
 {
@@ -69,7 +72,7 @@ namespace Framework
 		inline bool operator !=(const Vec2& a);
 
 		/// --- RAYLIB VECTOR --- ///
-		Vec2(Vector2& v) : x(v.x), y(v.y) { }
+		Vec2(const Vector2& v) : x(v.x), y(v.y) { }
 		operator Vector2() const { return { x, y }; } // Implicit operator
 
 		/// --- BOX2D VECTOR --- ///
