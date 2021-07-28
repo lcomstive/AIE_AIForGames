@@ -15,6 +15,7 @@ namespace Framework::BT
 	class Composite;
 	class Decorator;
 	class Evaluator;
+	class Conditional;
 
 	enum class BehaviourResult { Success, Failure, Pending };
 
@@ -23,6 +24,7 @@ namespace Framework::BT
 		friend Composite;
 		friend Decorator;
 		friend Evaluator;
+		friend Conditional;
 		friend BehaviourTree;
 
 		enum class ContextDataType { Integer, Decimal, String, Other };
@@ -220,6 +222,7 @@ namespace Framework::BT
 			if (m_Child)
 				m_Child.release();
 			m_Child = make_unique<T>();
+			m_Child->m_Context = m_Context;
 			return (T*)m_Child.get();
 		}
 
@@ -359,10 +362,15 @@ namespace Framework::BT
 	};
 
 	// Repeats execution until condition is false (while loop)
-	class RepeatUntil : public Decorator
+	class Repeat : public Decorator
 	{
+		unsigned int m_Repetitions;
+
 	public:
-		std::function<bool(GameObject* go, RepeatUntil* caller)> Condition;
+		bool SingleFrame; // Whether to repeat over one or many update loops
+		std::function<bool(GameObject* go, Repeat* caller)> Condition;
+
+		Repeat() : SingleFrame(false), Condition(nullptr), m_Repetitions(0) { }
 
 		virtual BehaviourResult Execute(GameObject* go) override;
 		virtual std::string GetName() override { return "Repeat"; }
@@ -382,8 +390,12 @@ namespace Framework::BT
 	// Repeats execution of child until count is reached
 	class RepeatCount : public Decorator
 	{
+		unsigned int m_Repetitions;
 	public:
+		bool SingleFrame; // Whether to repeat over one or many update loops
 		unsigned int Repetitions = 1;
+
+		RepeatCount() : SingleFrame(false), Repetitions(1), m_Repetitions(0) { }
 
 		virtual BehaviourResult Execute(GameObject* go) override;
 		virtual std::string GetName() override { return "RepeatCount"; }
@@ -392,7 +404,13 @@ namespace Framework::BT
 	// Repeats execution of child until failure is returned from execution, then returns success
 	class RepeatUntilFail : public Decorator
 	{
+		unsigned int m_Repetitions;
+
 	public:
+		bool SingleFrame; // Whether to repeat over one or many update loops
+		
+		RepeatUntilFail() : SingleFrame(false), m_Repetitions(0) { }
+
 		virtual BehaviourResult Execute(GameObject* go) override;
 		virtual std::string GetName() override { return "RepeatUntilFail"; }
 	};

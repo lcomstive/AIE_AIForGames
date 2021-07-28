@@ -21,7 +21,7 @@ BehaviourResult LimitTime::Execute(GameObject* go)
 	}
 
 	auto result = child->Execute(go);
-	return result == BehaviourResult::Success ? result : BehaviourResult::Pending;
+	return result;
 }
 
 void LimitTime::SetTime(float time) { m_TimeLeft = m_MaxTime = time; }

@@ -51,7 +51,7 @@ void GameObject::Destroy()
 		m_PhysicsBody = nullptr;
 	}
 
-	for(int i = m_Tags.size() - 1; i >= 0; i--)
+	for(int i = (int)m_Tags.size() - 1; i >= 0; i--)
 		RemoveTag(m_Tags[i]);
 }
 

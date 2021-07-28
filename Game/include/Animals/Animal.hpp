@@ -22,6 +22,7 @@ class Animal : public Framework::AnimatedSprite
 
 	void CreateBehaviourWander();
 	void CreateBehaviourCheckFood();
+	void CreateBehaviourCheckDeath();
 	void CreateBehaviourCheckWater();
 	void CreateBehaviourCheckPredator();
 	Framework::BT::FindClosestNavigatable* AddFindClosestNavigatable

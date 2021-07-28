@@ -40,6 +40,7 @@ class Game
 	const float GridCellSize = 25;
 
 	Map m_Map;
+	Font m_Font;
 	Camera2D m_Camera;
 	Framework::GameObject* m_Root;
 	Framework::GameObject* m_Background;

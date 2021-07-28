@@ -5,20 +5,21 @@ using namespace Framework;
 using namespace Framework::BT;
 using namespace Framework::Pathfinding;
 
+Grid<SquareGridNode>* FindClosestNavigatable::m_Grid = nullptr;
+
 void FindClosestNavigatable::CopyGrid(SquareGrid* grid)
 {
-	if (!ContextExists("Grid"))
+	if (!m_Grid)
 	{
+		cout << "CREATING NEW GRID" << endl;
 		m_Grid = new Grid<SquareGridNode>(grid->GetWidth(), grid->GetHeight());
-		m_AStar = new AStar();
-
-		SetContext("AStar", m_AStar);
-		SetContext("AStarGrid", m_Grid);
 	}
-	else
+	SetContext("AStarGrid", m_Grid);
+
+	if (!m_AStar)
 	{
-		m_AStar = GetContext<AStar*>("AStar");
-		m_Grid = GetContext<Grid<SquareGridNode>*>("AStarGrid");
+		m_AStar = new AStar();
+		SetContext("AStar", m_AStar);
 	}
 
 	for (unsigned int x = 0; x < grid->GetWidth(); x++)
@@ -35,7 +36,7 @@ void FindClosestNavigatable::CopyGrid(SquareGrid* grid)
 	m_Grid->RefreshNodes();
 }
 
-void FindClosestNavigatable::ExecuteFinding(Vec2 position, const vector<GameObject*> queryList, float cellSize)
+void FindClosestNavigatable::ExecuteFinding(Vec2 position, vector<GameObject*> queryList, float cellSize)
 {
 	// Reset
 	m_FindThreadStarted.store(true);
@@ -58,7 +59,9 @@ void FindClosestNavigatable::ExecuteFinding(Vec2 position, const vector<GameObje
 		if (startPos.x == endPos.x && startPos.y == endPos.y)
 		{
 			// Already at target
+#if TRY_MULTITHREADING
 			lock_guard<mutex> lock(m_FindThreadMutex);
+#endif
 			m_FindThreadFinished.store(true);
 			m_FindThreadResult = BehaviourResult::Success;
 			return;
@@ -69,7 +72,12 @@ void FindClosestNavigatable::ExecuteFinding(Vec2 position, const vector<GameObje
 			m_Grid->GetCell((unsigned int)  endPos.x, (unsigned int)  endPos.y)
 		);
 
-		m_AStar->Finish();
+		{
+#if TRY_MULTITHREADING
+			lock_guard<mutex> lock(m_FindThreadMutex);
+#endif
+			m_AStar->Finish();
+		}
 
 		if (!m_AStar->IsPathValid() || m_AStar->GetSmallestFScore() > smallestFScore)
 			continue;
@@ -82,8 +90,10 @@ void FindClosestNavigatable::ExecuteFinding(Vec2 position, const vector<GameObje
 
 	m_FindThreadStarted.store(false);
 	m_FindThreadFinished.store(true);
-
+#if TRY_MULTITHREADING
 	lock_guard<mutex> lock(m_FindThreadMutex);
+#endif
+
 	m_FindThreadResult = m_FoundClosest ? BehaviourResult::Success : BehaviourResult::Failure;
 }
 
@@ -119,7 +129,13 @@ BehaviourResult FindClosestNavigatable::Execute(GameObject* go)
 		if (queryList.size() == 0 || !m_Grid)
 			return BehaviourResult::Failure;
 
-		m_FindThread = thread([=]() { ExecuteFinding(go->GetPosition(), queryList, GetContext<float>("CellSize", 1.0f)); });
+#ifndef TRY_MULTITHREADING
+		ExecuteFinding(go->GetPosition(), queryList, GetContext<float>("CellSize", 1.0f));
+#else
+		Vec2 startPos = go->GetPosition();
+		float cellSize = GetContext<float>("CellSize", 1.0f);
+		m_FindThread = thread([=]() { ExecuteFinding(startPos, queryList, cellSize); });
+#endif
 	}
 
 	// Check if still processing
@@ -127,7 +143,11 @@ BehaviourResult FindClosestNavigatable::Execute(GameObject* go)
 		return BehaviourResult::Pending;
 
 	// Reset
+#ifdef TRY_MULTITHREADING
+	lock_guard<mutex> guard(m_FindThreadMutex);
 	m_FindThread.join();
+#endif
+	
 	m_FindThreadStarted.store(false);
 	m_FindThreadFinished.store(false);
 

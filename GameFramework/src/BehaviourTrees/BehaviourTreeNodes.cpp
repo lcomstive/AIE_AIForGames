@@ -63,7 +63,7 @@ BehaviourResult Conditional::Execute(GameObject* go)
 {
 	if (!go || !Function)
 		return BehaviourResult::Failure;
-	return Function(go, this) ? BehaviourResult::Success : BehaviourResult::Failure;
+	return Function(go, this) ? (m_Child ? m_Child->Execute(go) : BehaviourResult::Success) : BehaviourResult::Failure;
 }
 
 /// --- COMPOSITE --- ///
@@ -72,6 +72,7 @@ Composite::~Composite()
 	for (BehaviourNode* child : m_Children)
 		delete child;
 	m_Children.clear();
+	m_Children.shrink_to_fit();
 }
 
 void Composite::OnDebugDraw(GameObject* go)
@@ -258,27 +259,43 @@ BehaviourResult DynamicLog::Execute(GameObject* go)
 BehaviourResult Succeeder::Execute(GameObject* go)
 {
 	auto child = GetChild();
+	auto result = BehaviourResult::Success;
 	if (go && child)
-		child->Execute(go);
-	return BehaviourResult::Success;
+		result = child->Execute(go);
+	return result == BehaviourResult::Pending ? result : BehaviourResult::Success;
 }
 
-/// --- REPEAT UNTIL --- ///
-BehaviourResult RepeatUntil::Execute(GameObject* go)
+/// --- REPEAT --- ///
+BehaviourResult Repeat::Execute(GameObject* go)
 {
 	auto child = GetChild();
 	BehaviourResult result = BehaviourResult::Failure;
 	if (!go || !child || !Condition)
 		return result;
 
-	unsigned int repeats = 0;
-	SetContext("RepeatCount", repeats);
-	while (Condition(go, this))
-	{
+	bool condition = Condition(go, this);
+	if(condition)
 		result = child->Execute(go);
-		SetContext("RepeatCount", ++repeats);
+
+	if (SingleFrame)
+	{
+		while (Condition(go, this))
+		{
+			result = child->Execute(go);
+			SetContext("RepeatCount", ++m_Repetitions);
+		}
+		m_Repetitions = 0;
+		return result;
 	}
-	return result;
+	else
+		SetContext("RepeatCount", ++m_Repetitions);
+
+	if (!condition)
+	{
+		m_Repetitions = 0;
+		ClearContext("RepeatCount");
+	}
+	return condition ? BehaviourResult::Pending : BehaviourResult::Failure;
 }
 
 /// --- REPEAT TIME --- ///
@@ -309,13 +326,18 @@ BehaviourResult RepeatCount::Execute(GameObject* go)
 	if (!go || !child)
 		return result;
 
-	unsigned int repeats = 0;
-	SetContext("RepeatCount", repeats);
-	for (unsigned int i = 0; i < Repetitions; i++)
+	SetContext("RepeatCount", m_Repetitions);
+	for (unsigned int i = 0; i < (SingleFrame ? Repetitions : 1u); i++)
 	{
 		result = child->Execute(go);
-		SetContext("RepeatCount", ++repeats);
+		SetContext("RepeatCount", ++m_Repetitions);
 	}
+
+	if (m_Repetitions >= Repetitions)
+		m_Repetitions = 0;
+	else
+		return BehaviourResult::Pending;
+
 	return result;
 }
 
@@ -326,10 +348,23 @@ BehaviourResult RepeatUntilFail::Execute(GameObject* go)
 	if (!go || !child)
 		return BehaviourResult::Failure;
 	BehaviourResult result;
-	unsigned int repeats = 0;
 	
-	SetContext("RepeatCount", repeats);
-	while ((result = child->Execute(go)) != BehaviourResult::Failure)
-		SetContext("RepeatCount", ++repeats);
-	return BehaviourResult::Success;
+	SetContext("RepeatCount", m_Repetitions);
+
+	if (SingleFrame)
+	{
+		while ((result = child->Execute(go)) != BehaviourResult::Failure)
+			SetContext("RepeatCount", ++m_Repetitions);
+		return BehaviourResult::Success;
+	}
+
+	result = child->Execute(go);
+	if (result == BehaviourResult::Failure)
+	{
+		m_Repetitions = 0;
+		ClearContext("RepeatCount");
+		cout << "[RepeatUntilFail] Failed!" << endl;
+		return result;
+	}
+	return BehaviourResult::Pending;
 }

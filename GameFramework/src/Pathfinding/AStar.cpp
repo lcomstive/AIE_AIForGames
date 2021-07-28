@@ -81,7 +81,8 @@ void AStar::Step()
 		m_Finished = true;
 		return;
 	}
-	sort(m_OpenList.begin(), m_OpenList.end(), CompareAStarCells);
+	if(m_OpenList.size() > 1)
+		sort(m_OpenList.begin(), m_OpenList.end(), CompareAStarCells);
 
 	auto current = m_OpenList[0];
 

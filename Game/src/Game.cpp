@@ -72,6 +72,8 @@ Game::Game()
 	m_Camera = Camera2D();
 	m_Camera.zoom = 0.9f;
 	m_Camera.target = { m_Map.GetWidth() * GridCellSize / 2.0f , m_Map.GetHeight() * GridCellSize / 2.0f };
+
+	m_Font = LoadFont("./assets/SourceSansPro-Regular.ttf");
 }
 
 Game::~Game()
@@ -161,9 +163,22 @@ void Game::PostPhysicsUpdate() { }
 
 void Game::DrawUI()
 {
-// #ifndef NDEBUG
-	DrawFPS(10, 10);
-// #endif
+	const float FontSize = 20;
+	const float Spacing = 2.0f;
+
+	int fps = GetFPS();
+	Color fpsTextColor = RAYWHITE;
+	if (fps >= 30 && fps < 55)
+		fpsTextColor = YELLOW;
+	else if (fps < 30)
+		fpsTextColor = RED;
+
+	DrawTextEx(m_Font, ("FPS: " + to_string(GetFPS())).c_str(), { 10, 10 }, FontSize, Spacing, fpsTextColor);
+	DrawTextEx(m_Font, "Hold middle mouse button to move camera", { 10, 10 + FontSize }, FontSize, Spacing, RAYWHITE);
+	DrawTextEx(m_Font, "Scrollwheel to zoom in & out", { 10, 10 + FontSize * 2 }, FontSize, Spacing, RAYWHITE);
+	DrawTextEx(m_Font, "Spawn Options: ", { 10, 10 + FontSize * 3 }, FontSize, Spacing, RAYWHITE);
+	DrawTextEx(m_Font, "\tSlime    - Left mouse button",  { 10, 10 + FontSize * 4 }, FontSize, Spacing, RAYWHITE);
+	DrawTextEx(m_Font, "\tSkeleton - Right mouse button", { 10, 10 + FontSize * 5 }, FontSize, Spacing, RAYWHITE);
 }
 
 int main()

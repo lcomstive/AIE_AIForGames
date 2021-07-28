@@ -9,23 +9,27 @@
 
 using SquareGrid = Framework::Pathfinding::Grid<Framework::Pathfinding::SquareGridNode>;
 
+// #define TRY_MULTITHREADING
+
 namespace Framework::BT
 {
 	class FindClosestNavigatable : public Action
 	{
 		// Pathfinding
-		SquareGrid* m_Grid;
+		static SquareGrid* m_Grid;
 		Framework::Pathfinding::AStar* m_AStar;
+		std::vector<Pathfinding::AStarCell*> m_FoundPath;
 
 		// Find in background thread
+#if TRY_MULTITHREADING
 		std::thread m_FindThread;
-		GameObject* m_FoundClosest;
 		std::mutex m_FindThreadMutex;
+#endif
+		GameObject* m_FoundClosest;
 		BehaviourResult m_FindThreadResult;
-		std::vector<Pathfinding::AStarCell*> m_FoundPath;
 		std::atomic_bool m_FindThreadFinished, m_FindThreadStarted;
 
-		void ExecuteFinding(Vec2 startPos, const std::vector<GameObject*> queryList, float cellSize);
+		void ExecuteFinding(Vec2 startPos, std::vector<GameObject*> queryList, float cellSize);
 
 	public:
 		float Sight; // Radius around GameObject
@@ -36,15 +40,17 @@ namespace Framework::BT
 			TargetTags(),
 			m_FoundPath(),
 			Sight(1000.0f),
-			m_FindThread(),
-			m_Grid(nullptr),
 			m_AStar(nullptr),
-			m_FindThreadMutex(),
 			m_FoundClosest(nullptr),
-			m_FindThreadStarted(false),
-			m_FindThreadFinished(false),
 			GetTargetFromContext(false),
 			m_FindThreadResult(BehaviourResult::Failure)
+
+#if TRY_MULTITHREADING
+			m_FindThread(),
+			m_FindThreadMutex(),
+			m_FindThreadStarted(false),
+			m_FindThreadFinished(false)
+#endif
 		{ }
 
 		void CopyGrid(SquareGrid* grid);
