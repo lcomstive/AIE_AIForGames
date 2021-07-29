@@ -7,3 +7,6 @@
 [submodule "ThirdParty/box2d"]
 	path = ThirdParty/box2d
 	url = https://github.com/erincatto/box2d.git
+[submodule "ThirdParty/robin-hood-hashing"]
+	path = ThirdParty/robin-hood-hashing
+	url = https://github.com/martinus/robin-hood-hashing.git
