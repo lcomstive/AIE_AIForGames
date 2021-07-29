@@ -241,7 +241,7 @@ void GameObject::RemoveTag(std::string tag)
 		return; // Tag doesn't exist
 	}
 
-	for (auto& it = m_GlobalTags[tag].cbegin(); it != m_GlobalTags[tag].cend(); it++)
+	for (auto it = m_GlobalTags[tag].cbegin(); it != m_GlobalTags[tag].cend(); it++)
 	{
 		if (*it != this)
 			continue;
@@ -249,7 +249,7 @@ void GameObject::RemoveTag(std::string tag)
 		break;
 	}
 
-	for (auto& it = m_Tags.cbegin(); it != m_Tags.cend(); it++)
+	for (auto it = m_Tags.cbegin(); it != m_Tags.cend(); it++)
 	{
 		if ((*it).compare(tag) != 0)
 			continue;

@@ -20,7 +20,7 @@ namespace Framework::BT
 
 		void CopyGrid(SquareGrid* grid);
 
-		virtual std::string GetName() { return "FindPath"; }
+		virtual std::string GetName() override { return "FindPath"; }
 		virtual BehaviourResult Execute(GameObject* go) override;
 	};
 }

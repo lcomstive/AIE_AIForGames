@@ -45,7 +45,7 @@ void Map::Load(string filepath)
 			m_Tiles[y].emplace_back(line[x]);
 
 			if (x >= m_MaxWidth)
-				m_MaxWidth = unsigned int(x + 1);
+				m_MaxWidth = (unsigned int)(x + 1);
 		}
 
 		y++;
