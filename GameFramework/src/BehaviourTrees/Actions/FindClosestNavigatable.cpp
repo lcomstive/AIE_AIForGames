@@ -59,10 +59,11 @@ void FindClosestNavigatable::ExecuteFinding(Vec2 position, vector<GameObject*> q
 		if (startPos.x == endPos.x && startPos.y == endPos.y)
 		{
 			// Already at target
-#if TRY_MULTITHREADING
+			m_FindThreadFinished.store(true);
+
+#ifdef TRY_MULTITHREADING
 			lock_guard<mutex> lock(m_FindThreadMutex);
 #endif
-			m_FindThreadFinished.store(true);
 			m_FindThreadResult = BehaviourResult::Success;
 			return;
 		}
@@ -72,12 +73,7 @@ void FindClosestNavigatable::ExecuteFinding(Vec2 position, vector<GameObject*> q
 			m_Grid->GetCell((unsigned int)  endPos.x, (unsigned int)  endPos.y)
 		);
 
-		{
-#if TRY_MULTITHREADING
-			lock_guard<mutex> lock(m_FindThreadMutex);
-#endif
-			m_AStar->Finish();
-		}
+		m_AStar->Finish();
 
 		if (!m_AStar->IsPathValid() || m_AStar->GetSmallestFScore() > smallestFScore)
 			continue;
@@ -90,7 +86,7 @@ void FindClosestNavigatable::ExecuteFinding(Vec2 position, vector<GameObject*> q
 
 	m_FindThreadStarted.store(false);
 	m_FindThreadFinished.store(true);
-#if TRY_MULTITHREADING
+#ifdef TRY_MULTITHREADING
 	lock_guard<mutex> lock(m_FindThreadMutex);
 #endif
 
@@ -122,6 +118,8 @@ BehaviourResult FindClosestNavigatable::Execute(GameObject* go)
 
 		for (string& tag : TargetTags)
 		{
+			// GameObject with multiple occurring or target tags may be added twice
+
 			vector<GameObject*> tagged = GameObject::GetTag(tag);
 			queryList.insert(queryList.end(), tagged.begin(), tagged.end());
 		}

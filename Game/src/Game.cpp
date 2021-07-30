@@ -56,7 +56,7 @@ Game::Game()
 	InitWindow(1280, 720, "Game");
 	SetWindowState(FLAG_WINDOW_RESIZABLE);
 
-	SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
+	// SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor()));
 
 	PhysicsWorldArgs args;
 	args.Gravity = { 0, 0 };
@@ -112,6 +112,7 @@ void Game::Run()
 
 #ifndef NDEBUG
 		/// TEMP ///
+		/*
 		for (unsigned int x = 0; x < m_PathfindingGrid->GetWidth(); x++)
 		{
 			for (unsigned int y = 0; y < m_PathfindingGrid->GetHeight(); y++)
@@ -122,6 +123,7 @@ void Game::Run()
 				DrawText(to_string((int)cell->Cost).c_str(), (int)(x * GridCellSize), (int)(y * GridCellSize), 10, PINK);
 			}
 		}
+		*/
 		/// TEMP ///
 #endif
 
@@ -179,6 +181,8 @@ void Game::DrawUI()
 	DrawTextEx(m_Font, "Spawn Options: ", { 10, 10 + FontSize * 3 }, FontSize, Spacing, RAYWHITE);
 	DrawTextEx(m_Font, "\tSlime    - Left mouse button",  { 10, 10 + FontSize * 4 }, FontSize, Spacing, RAYWHITE);
 	DrawTextEx(m_Font, "\tSkeleton - Right mouse button", { 10, 10 + FontSize * 5 }, FontSize, Spacing, RAYWHITE);
+
+	DrawTextEx(m_Font, ("Total Creatures: " + to_string(m_Root->GetChildren().size())).c_str(), { 10, 10 + FontSize * 6 }, FontSize, Spacing, RAYWHITE);
 }
 
 int main()

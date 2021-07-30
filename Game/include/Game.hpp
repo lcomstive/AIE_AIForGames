@@ -1,8 +1,7 @@
 #pragma once
 #include <memory>
 #include <Map.hpp>
-#include <Animals/Animal.hpp>
-#include <Animals/Predator.hpp>
+#include <Animal.hpp>
 #include <Framework/GameObject.hpp>
 #include <Framework/GameObjects/Sprite.hpp>
 #include <Framework/Pathfinding/PathFindingGrid.hpp>
@@ -12,6 +11,7 @@ using PathfindingGrid = Framework::Pathfinding::Grid<SquareGridNode>;
 
 class Game
 {
+	// Creature archetype
 	struct CreatureInfo
 	{
 		float Speed;
@@ -27,17 +27,19 @@ class Game
 		~CreatureInfo();
 
 	private:
-		bool m_CreatedTexture;
+		bool m_CreatedTexture; // True if texture was created in constructor, false if texture was copied
 	};
 
 	std::vector<CreatureInfo> m_CreatureInfos;
 	std::vector<Animal*> m_Creatures;
 
+	// Camera controls
 	const float MinZoom = 0.05f;
 	const float MaxZoom = 2.50f;
 	const float ZoomSpeed = 10.0f;
 
-	const float GridCellSize = 25;
+	// Map cell size
+	const float GridCellSize = 50;
 
 	Map m_Map;
 	Font m_Font;

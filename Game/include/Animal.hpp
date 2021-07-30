@@ -8,13 +8,17 @@
 
 enum class FoodClass { Herbivore, Omnivore, Carnivore };
 
+// AI Agents
 class Animal : public Framework::AnimatedSprite
 {
 	friend class Game;
 
+	// Decision-making
 	std::unique_ptr<Framework::BehaviourTree> m_BehaviourTree;
+	// Pathfinding
 	Framework::Pathfinding::Grid<Framework::Pathfinding::SquareGridNode>* m_Grid;
 
+	// Inidivual's parameters
 	FoodClass m_FoodClass = FoodClass::Herbivore;
 	float m_Health, m_Thirst, m_Hunger, m_Speed;
 
@@ -36,17 +40,20 @@ public:
 	Animal(Texture texture, GameObject* parent = nullptr);
 	Animal(std::string texturePath, GameObject* parent = nullptr);
 
+	// Populates the behaviour tree, with grid passed for pathfinding nodes
 	void InitBehaviourTree(Framework::Pathfinding::Grid<Framework::Pathfinding::SquareGridNode>* grid);
 
 	virtual void OnDraw() override;
 	virtual void OnUpdate() override;
 
+	// Getters
 	float GetSpeed();
 	float GetHealth();
 	float GetThirst();
 	float GetHunger();
 	FoodClass GetFoodClass();
 
+	// Setters
 	void AddHealth(float value);
 	void AddThirst(float value);
 	void AddHunger(float value);

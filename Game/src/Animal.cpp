@@ -1,6 +1,6 @@
 #include <Game.hpp>
 #include <algorithm>
-#include <Animals/Animal.hpp>
+#include <Animal.hpp>
 
 #include <Framework/BehaviourTrees/Actions/Move.hpp>
 #include <Framework/BehaviourTrees/Actions/Wait.hpp>
@@ -169,7 +169,6 @@ void Animal::CreateBehaviourCheckFood()
 	{
 		foodTags.emplace_back("CarnivoreFood");
 		foodTags.emplace_back("PassiveCreature");
-	
 	}
 	
 	auto repeat = sequence->AddChild<Repeat>();
@@ -213,6 +212,7 @@ void Animal::CreateBehaviourCheckFood()
 		}
 		else
 			goAnimal->SetHunger(0.0f); // Source of food that is (probably) not alive
+
 		return true;
 	};
 }
@@ -221,7 +221,7 @@ void Animal::CreateBehaviourCheckDeath()
 {
 	/* 
 	
-	Doesn't work consistently, commenting out for submission as not enough time to properly implement
+	Doesn't work consistently, might comment out for submission as not enough time to properly implement
 	
 
 	auto condition = m_BehaviourTree->Add<Conditional>();
@@ -233,19 +233,22 @@ void Animal::CreateBehaviourCheckDeath()
 	sequence->AddChild<Log>()->Message = "Behaviour - DEATH";
 #endif
 
-	sequence->AddChild<SetValue>()->Set("AnimationState", "Death");
+	// sequence->AddChild<SetValue>()->Set("AnimationState", "Death");
 #ifndef NDEBUG
 	sequence->AddChild<Log>()->Message = "Behaviour - DEATH SETVALUE";
 #endif
-#ifndef NDEBUG
+// #ifndef NDEBUG
+	sequence->AddChild<Conditional>()->Function = [](GameObject* go, Conditional* conditional) { return rand() % 10 + 1 < 2; }; // 20% chance of true (I think?)
 	auto sound = sequence->AddChild<BT::PlaySound>();
 	sound->Sound = LoadSound("./assets/Sounds/Unacceptable.mp3");
 	SetAudioStreamVolume(sound->Sound.stream, 0.5f);
 	sequence->AddChild<Log>()->Message = "Behaviour - DEATH SOUND";
-	sound->WaitForFinish = false;
-#endif
+	sound->WaitForFinish = true;
+// #endif
+
 	// sequence->AddChild<Wait>()->SetTime(0.25f);
 	sequence->AddChild<CallFunction>()->Function = [](GameObject* go, CallFunction*) { go->Destroy(); return true; };
+
 	*/
 }
 

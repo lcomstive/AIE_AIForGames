@@ -21,7 +21,7 @@ namespace Framework::BT
 		std::vector<Pathfinding::AStarCell*> m_FoundPath;
 
 		// Find in background thread
-#if TRY_MULTITHREADING
+#ifdef TRY_MULTITHREADING
 		std::thread m_FindThread;
 		std::mutex m_FindThreadMutex;
 #endif
@@ -45,8 +45,8 @@ namespace Framework::BT
 			GetTargetFromContext(false),
 			m_FindThreadResult(BehaviourResult::Failure)
 
-#if TRY_MULTITHREADING
-			m_FindThread(),
+#ifdef TRY_MULTITHREADING
+			, m_FindThread(),
 			m_FindThreadMutex(),
 			m_FindThreadStarted(false),
 			m_FindThreadFinished(false)
